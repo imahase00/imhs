@@ -1,0 +1,19 @@
+# ユーザー準備の原本・画面見本（公開しない）
+/IMG/
+# 開発指示書（個人パスを含むため公開しない）
+/IMHS_Claude_Code.md
+
+# 開発用
+node_modules/
+/test-output/
+*.log
+
+# ローカルバックアップ
+*.imhs-backup.json
+imhs-backup-*.json
+
+# OS / エディタ
+Thumbs.db
+desktop.ini
+.DS_Store
+.vscode/

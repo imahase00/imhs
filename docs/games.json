@@ -1,0 +1,18 @@
+{
+  "catalogVersion": 1,
+  "games": [
+    {
+      "id": "merge-journey",
+      "title": "マージの旅",
+      "subtitle": "小さな島をめぐる、合成の冒険",
+      "cover": "games/merge-journey/img/cover.webp",
+      "entry": "games/merge-journey/index.html",
+      "saveModule": "games/merge-journey/save-schema.js",
+      "description": [
+        "同じ品物を２つ重ねると、ひとつ上の品物に。こもれび島・しおかぜ島・ほしあかり島をめぐり、島の人たちの依頼をかなえて、消えた灯台にもう一度光を灯しましょう。",
+        "生産元はタップで何度でも無料。待ち時間やスタミナはありません。",
+        "進行はこの端末に自動保存されます。ほかの端末へは⚙設定のバックアップで移せます。"
+      ]
+    }
+  ]
+}
