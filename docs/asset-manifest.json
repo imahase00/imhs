@@ -1,6 +1,6 @@
 {
  "app": "imhs",
- "version": "dccc0bd5ade5",
+ "version": "f56c0629e8b0",
  "files": [
   "games.json",
   "games/hidamari-garden/audio.js",

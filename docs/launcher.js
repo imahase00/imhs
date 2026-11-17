@@ -50,8 +50,68 @@ async function renderGames() {
         detailBtn,
         detail)));
   }
+  const keep = currentGameId();
   box.replaceChildren(...cards);
+  renderPager(keep ?? lastGameId());
 }
+
+// ---- スマホ幅の横スライド（どのゲームを見ていたかを覚えておく） ----
+const LAST_KEY = 'imhs:launcher:lastGame';
+function lastGameId() { try { return localStorage.getItem(LAST_KEY); } catch { return null; } }
+function rememberGame(id) { try { if (id) localStorage.setItem(LAST_KEY, id); } catch { /* 保存できない環境 */ } }
+const isSlider = () => getComputedStyle($('games')).overflowX === 'auto';
+function currentIndex() {
+  const box = $('games');
+  const cards = [...box.children];
+  if (!cards.length) return -1;
+  const mid = box.getBoundingClientRect().left + box.clientWidth / 2;
+  let best = 0;
+  let dist = Infinity;
+  cards.forEach((c, k) => {
+    const r = c.getBoundingClientRect();
+    const d = Math.abs(r.left + r.width / 2 - mid);
+    if (d < dist) { dist = d; best = k; }
+  });
+  return best;
+}
+function currentGameId() {
+  const k = currentIndex();
+  return k >= 0 && isSlider() ? $('games').children[k].dataset.game : null;
+}
+function showGame(k, smooth) {
+  const card = $('games').children[k];
+  if (!card) return;
+  const box = $('games');
+  const left = card.offsetLeft - (box.clientWidth - card.offsetWidth) / 2;
+  if (smooth) box.scrollTo({ left, behavior: 'smooth' }); else box.scrollLeft = left;
+}
+function renderPager(focusId) {
+  const pager = $('pager');
+  const n = games.length;
+  pager.hidden = n < 2;
+  pager.replaceChildren(...games.map((g, k) => h('button', {
+    type: 'button', 'aria-label': `${k + 1}本目: ${g.title}`,
+    onclick: () => showGame(k, true),
+  })));
+  const k = Math.max(0, games.findIndex((g) => g.id === focusId));
+  if (isSlider()) showGame(k, false);
+  updatePager();
+}
+function updatePager() {
+  const k = isSlider() ? currentIndex() : -1;
+  [...$('pager').children].forEach((b, i) => b.setAttribute('aria-current', String(i === k)));
+  if (k >= 0) rememberGame(games[k]?.id);
+}
+let pagerFrame = 0;
+$('games').addEventListener('scroll', () => {
+  cancelAnimationFrame(pagerFrame);
+  pagerFrame = requestAnimationFrame(updatePager);
+}, { passive: true });
+window.addEventListener('resize', () => { cancelAnimationFrame(pagerFrame); pagerFrame = requestAnimationFrame(updatePager); });
+$('games').addEventListener('click', (e) => {
+  const a = e.target.closest('[data-play]');
+  if (a) rememberGame(a.dataset.play);
+});
 
 // ---- オフライン表示 ----
 function setOffline(s) {

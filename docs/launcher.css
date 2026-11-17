@@ -269,6 +269,32 @@ button { font: inherit; color: inherit; }
 }
 .toast.show { opacity: 1; transform: translate(-50%, 0); }
 
+/* スマホ幅: ゲームは横スライドで切り替え（次のカードの端をのぞかせる） */
+@media (max-width: 759px) {
+  .games {
+    display: flex; gap: 12px; align-items: flex-start;
+    overflow-x: auto; overflow-y: hidden; overscroll-behavior-x: contain;
+    scroll-snap-type: x mandatory; scrollbar-width: none; -webkit-overflow-scrolling: touch;
+    margin: 0 calc(-18px - env(safe-area-inset-right)) 0 calc(-18px - env(safe-area-inset-left));
+    padding: 2px calc(18px + env(safe-area-inset-right)) 8px calc(18px + env(safe-area-inset-left));
+    scroll-padding: 0 calc(18px + env(safe-area-inset-right)) 0 calc(18px + env(safe-area-inset-left));
+  }
+  .games::-webkit-scrollbar { display: none; }
+  .games > .card { flex: 0 0 calc(100% - 22px); scroll-snap-align: center; scroll-snap-stop: always; }
+  .games:has(> .card:only-child) > .card { flex-basis: 100%; }
+}
+.pager { display: flex; justify-content: center; gap: 4px; margin: 6px 0 2px; }
+.pager button {
+  width: 28px; height: 28px; padding: 0; border: 0; background: none; cursor: pointer;
+  display: grid; place-items: center; touch-action: manipulation;
+}
+.pager button::before {
+  content: ""; width: 9px; height: 9px; border-radius: 999px; background: var(--line);
+  transition: width .2s, background-color .2s;
+}
+.pager button[aria-current="true"]::before { width: 24px; background: var(--accent); }
+@media (min-width: 760px) { .pager { display: none; } }
+
 @media (min-width: 760px) {
   .shell { padding-top: 28px; }
   .cover { aspect-ratio: 16 / 13; }

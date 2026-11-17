@@ -431,6 +431,14 @@ await step('ひだまり菜園: ランチャーに2本目として並び、通�
   await page.goto(URL0, { waitUntil: 'networkidle0' });
   const titles = await page.$$eval('.cover-title b', (b) => b.map((x) => x.textContent));
   assert.deepEqual(titles, ['マージの旅', 'ひだまり菜園']);
+  // スマホ幅は横スライド: 縦スクロールなしで1枚ずつ、点で切り替え
+  const lay = await page.evaluate(() => ({ sw: document.documentElement.scrollWidth, vw: innerWidth, overflow: getComputedStyle(document.querySelector('#games')).overflowX }));
+  assert.equal(lay.overflow, 'auto');
+  assert.ok(lay.sw <= lay.vw, 'ページ全体は横にはみ出さない');
+  await page.tap('#pager button:nth-child(2)');
+  await page.waitForFunction(() => document.querySelector('#pager button:nth-child(2)').getAttribute('aria-current') === 'true', { timeout: 3000 });
+  const box = await (await page.$('[data-play="hidamari-garden"]')).boundingBox();
+  assert.ok(box.x >= 0 && box.x + box.width <= 393, '2本目の「遊ぶ」が画面内');
   await Promise.all([page.waitForNavigation({ waitUntil: 'networkidle0' }), page.tap('[data-play="hidamari-garden"]')]);
   await page.waitForFunction(() => window.__hidamari?.state);
   assert.equal(await page.$eval('#talk', (e) => e.hidden), false, '最初の会話');
