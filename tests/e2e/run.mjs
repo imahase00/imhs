@@ -437,8 +437,11 @@ await step('ひだまり菜園: ランチャーに2本目として並び、通�
   assert.ok(lay.sw <= lay.vw, 'ページ全体は横にはみ出さない');
   await page.tap('#pager button:nth-child(2)');
   await page.waitForFunction(() => document.querySelector('#pager button:nth-child(2)').getAttribute('aria-current') === 'true', { timeout: 3000 });
-  const box = await (await page.$('[data-play="hidamari-garden"]')).boundingBox();
-  assert.ok(box.x >= 0 && box.x + box.width <= 393, '2本目の「遊ぶ」が画面内');
+  // スライドが止まるまで待ち、2本目の「遊ぶ」が画面内に収まることを確認
+  await page.waitForFunction(() => {
+    const r = document.querySelector('[data-play="hidamari-garden"]').getBoundingClientRect();
+    return r.left >= 0 && r.right <= innerWidth;
+  }, { timeout: 3000 });
   await Promise.all([page.waitForNavigation({ waitUntil: 'networkidle0' }), page.tap('[data-play="hidamari-garden"]')]);
   await page.waitForFunction(() => window.__hidamari?.state);
   assert.equal(await page.$eval('#talk', (e) => e.hidden), false, '最初の会話');
