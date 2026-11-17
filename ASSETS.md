@@ -1,10 +1,11 @@
 # 素材対応表
 
-`IMG/`（原本・非公開）→ 配信用コピー（`docs/` 配下）の対応です。
+`IMG/`（原本・非公開。ゲームごとのフォルダに整理）→ 配信用コピー（`docs/` 配下）の対応です。
 配信用コピーは `python tools/prepare_assets.py` で再生成できます（原本は読み取りのみ）。
 
-- アイテム: 192×192 WebP（透過保持） / 生産元: 224×224 WebP（透過保持）
-- 島背景: 幅1600 WebP（縦横比保持） / 表紙: 幅900 WebP（縦横比保持）
+- マージの旅: アイテム 192×192 / 生産元 224×224（WebP・透過保持）
+- ひだまり菜園: 一覧表（スプライトシート）を透明な隙間で自動分割し、余白を詰めて正方形に配置（WebP・透過保持）
+- 背景: 幅1600まで / 表紙: 幅900（WebP・縦横比保持）
 - PWAアイコン: `docs/icons/`（りんご Lv.1 から合成）
 
 | 原本ファイル | 原寸 | SHA1先頭 | 用途 | ゲームID / 素材ID | 配信パス（docs/ 相対） |
@@ -57,3 +58,11 @@
 | 船大工の道具箱-13.png | 1254×1254 | 55c3d11f59 | 生産元: 船具 | merge-journey / `gen-gear` | `games/merge-journey/img/gen/gear.webp` |
 | 花咲く木製育苗箱-27.png | 1254×1254 | e7a9fefad3 | 生産元: 花 | merge-journey / `gen-flower` | `games/merge-journey/img/gen/flower.webp` |
 | 灯り工房のランタン木箱-28.png | 1254×1254 | 4e275be398 | 生産元: 灯り | merge-journey / `gen-light` | `games/merge-journey/img/gen/light.webp` |
+| 12種の作物と花のスプライトアトラス.png | 1536×1024 | acbb5705f9 | 一覧表: 畑（4×3を分割） | hidamari-garden / `soil・seed・sprout・young・tomato・carrot・strawberry・pumpkin・sunflower・lavender・corn・blueberry` | `games/hidamari-garden/img/plot/*.webp` |
+| 収穫アイコンの彩りシート.png | 1536×1024 | b25c9d3873 | 一覧表: 収穫物（4×2を分割） | hidamari-garden / `tomato・carrot・strawberry・pumpkin・sunflower・lavender・corn・blueberry` | `games/hidamari-garden/img/items/*.webp` |
+| ほっこり手作りグッズ八種.png | 1536×1024 | fd5f48188b | 一覧表: 加工品（4×2を分割） | hidamari-garden / `soup・carrotcake・jam・pie・bouquet・potpourri・cornbread・tart` | `games/hidamari-garden/img/items/*.webp` |
+| 庭を彩る六つの小さな飾り.png | 1536×1024 | 640d6cb962 | 一覧表: 飾り（3×2を分割） | hidamari-garden / `fence・bench・birdhouse・flowerpot・lamp・birdbath` | `games/hidamari-garden/img/decor/*.webp` |
+| 村のパン屋・配達員・花屋.png | 1536×1024 | b66942e890 | 一覧表: 村の人（3×1を分割） | hidamari-garden / `toyo・sora・yuzu` | `games/hidamari-garden/img/faces/*.webp` |
+| 丘の上の小さな菜園.png | 1536×1024 | ec6ff7dc81 | 背景: 昼の菜園 | hidamari-garden / `bg-day` | `games/hidamari-garden/img/bg/day.webp` |
+| 灯りきらめく収穫祭の庭.png | 1536×1024 | c329149138 | 背景: 収穫祭の夕暮れ（エンディング） | hidamari-garden / `bg-festival` | `games/hidamari-garden/img/bg/festival.webp` |
+| 丘の庭の収穫かご.png | 1024×1536 | 6fd6d00683 | 表紙（ランチャーのゲームカード） | hidamari-garden / `cover` | `games/hidamari-garden/img/cover.webp` |

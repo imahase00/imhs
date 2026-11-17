@@ -153,9 +153,12 @@ button { font: inherit; color: inherit; }
   background: linear-gradient(transparent, var(--fade));
 }
 .cover-title {
-  position: absolute; left: 0; right: 0; top: 7%; text-align: center; z-index: 1;
+  position: absolute; left: 0; right: 0; top: 0; padding: 6% 0 7%; text-align: center; z-index: 1;
   color: #24342c;
+  /* 絵柄の細かい表紙でも題名が読めるよう、上部に淡い光の帯を敷く */
+  background: radial-gradient(70% 85% at 50% 35%, rgba(255, 252, 240, .82), rgba(255, 252, 240, .45) 55%, transparent 80%);
 }
+[data-theme="dark"] .cover-title { background: radial-gradient(70% 85% at 50% 35%, rgba(10, 30, 50, .6), rgba(10, 30, 50, .3) 55%, transparent 80%); }
 .cover-title b {
   display: block;
   font-family: "Hiragino Mincho ProN", "Yu Mincho", "YuMincho", serif;

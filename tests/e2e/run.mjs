@@ -82,12 +82,14 @@ await step('ランチャー表示・初回は「遊ぶ」・オフライン準�
 
 await step('テーマ切替（ライト→ダーク→絵本）が即時反映・保存', async () => {
   await page.click('#btn-settings');
+  await page.waitForSelector('.backup .btn');
   await page.click('[data-theme-opt="dark"]');
   assert.equal(await page.$eval('html', (e) => e.dataset.theme), 'dark');
   await page.click('[data-theme-opt="ehon"]');
   await page.reload({ waitUntil: 'networkidle0' });
   assert.equal(await page.$eval('html', (e) => e.dataset.theme), 'ehon');
   await page.click('#btn-settings');
+  await page.waitForSelector('.backup .btn');
   await page.click('[data-theme-opt="light"]');
   await page.click('#btn-close');
 });
@@ -189,6 +191,7 @@ await step('ランチャーへ戻ると「つづきから」と島の状況', as
 await step('不正なバックアップは拒否し、現在のデータを保持', async () => {
   const bad = backupFile('bad-backup.json', { ...R.newGame(1), board: [] });
   await page.click('#btn-settings');
+  await page.waitForSelector('.backup .btn');
   const input = await page.$('#file');
   await page.evaluate(() => { window.__pick = true; });
   await page.$$eval('.backup .btn', (b) => b[1].click()); // ファイルから復元（input.click は無害）
@@ -340,6 +343,7 @@ await step('更新: 新版を準備→「更新する」で切替、セーブは
 await step('灯台点灯 → エンディング → クリア後も合成・注文・島移動', async () => {
   await Promise.all([page.waitForNavigation({ waitUntil: 'networkidle0' }), page.click('#btn-back')]);
   await page.click('#btn-settings');
+  await page.waitForSelector('.backup .btn');
   await page.$$eval('.backup .btn', (b) => b[1].click());
   await (await page.$('#file')).uploadFile(backupFile('pre-ending.json', preEnd));
   await page.waitForSelector('#confirm:not([hidden])');
@@ -400,6 +404,133 @@ await step('iPhone 16 幅（タッチ）: 56マスが画面内・タップ操作
   const s2 = await gameState(p);
   assert.ok(s2.board.some((x) => x && x.c === 'light' && x.l === 2));
   await p.screenshot({ path: join(OUT, 'e2e-iphone.png') });
+  page = p;
+});
+
+// ---------------------------------------------------------------- ひだまり菜園
+const hgState = (p) => p.evaluate(() => window.__hidamari?.state);
+const hgSaved = (p) => p.waitForFunction(() => window.__hidamari && !window.__hidamari.saving(), { timeout: 5000 });
+async function hgSkip(p) {
+  for (let k = 0; k < 10; k++) {
+    if (await p.$eval('#talk', (el) => el.hidden)) return;
+    await p.tap('#talk-skip');
+    await sleep(120);
+  }
+}
+async function hgSleep(p) {
+  const day = (await hgState(p)).day;
+  await p.tap('#btn-sleep');
+  await sleep(200);
+  if (!(await p.$eval('#modal', (e) => e.hidden))) await p.tap('#modal .actions .btn:last-child');
+  await p.waitForFunction((d) => window.__hidamari.state.day === d + 1, {}, day);
+  await sleep(800);
+  await hgSkip(p);
+}
+
+await step('ひだまり菜園: ランチャーに2本目として並び、通常の入口から起動（iPhone 16 幅）', async () => {
+  await page.goto(URL0, { waitUntil: 'networkidle0' });
+  const titles = await page.$$eval('.cover-title b', (b) => b.map((x) => x.textContent));
+  assert.deepEqual(titles, ['マージの旅', 'ひだまり菜園']);
+  await Promise.all([page.waitForNavigation({ waitUntil: 'networkidle0' }), page.tap('[data-play="hidamari-garden"]')]);
+  await page.waitForFunction(() => window.__hidamari?.state);
+  assert.equal(await page.$eval('#talk', (e) => e.hidden), false, '最初の会話');
+  await hgSkip(page);
+  const geo = await page.evaluate(() => {
+    const plots = [...document.querySelectorAll('.plot')].map((e) => e.getBoundingClientRect());
+    return { n: plots.length, w: plots[0].width, right: Math.max(...plots.map((r) => r.right)), vw: innerWidth, sw: document.documentElement.scrollWidth };
+  });
+  assert.equal(geo.n, 6);
+  assert.ok(geo.w >= 90, `畑の大きさ ${geo.w}px`);
+  assert.ok(geo.sw <= geo.vw && geo.right <= geo.vw, '横スクロールなし');
+});
+
+await step('ひだまり菜園: 種まき→水やり→おやすみ×3→収穫→とよさんへ届ける→作業小屋が開く', async () => {
+  for (let i = 0; i < 3; i++) await page.tap(`.plot[data-i="${i}"]`);
+  let s = await hgState(page);
+  assert.equal(s.plots.filter((p) => p.c === 'carrot').length, 3);
+  for (let d = 0; d < 3; d++) {
+    for (let i = 0; i < 3; i++) await page.tap(`.plot[data-i="${i}"]`);
+    await hgSleep(page);
+  }
+  assert.equal(await page.$$eval('.plot.ripe', (e) => e.length), 3);
+  await page.tap('#btn-harvest-all');
+  s = await hgState(page);
+  assert.equal(s.inv.carrot, 3);
+  const coins = s.coins;
+  await page.tap('.card.quest[data-who="toyo"] .btn');
+  await sleep(200);
+  s = await hgState(page);
+  assert.equal(s.quests.toyo, 1);
+  assert.equal(s.coins, coins + 20);
+  assert.equal(s.bench.length, 1);
+  await hgSkip(page);
+  await page.tap('#btn-workshop');
+  assert.match(await page.$eval('#modal-panel', (e) => e.textContent), /にんじんケーキ/);
+  await page.tap('#modal-panel h2 .iconbtn');
+  await hgSaved(page);
+  await page.screenshot({ path: join(OUT, 'e2e-hidamari.png') });
+});
+
+await step('ひだまり菜園: 再読み込みで同じ日・同じかごから再開、ランチャーは「つづきから」', async () => {
+  const before = await hgState(page);
+  await page.reload({ waitUntil: 'networkidle0' });
+  await page.waitForFunction(() => window.__hidamari?.state);
+  const after = await hgState(page);
+  assert.equal(after.day, before.day);
+  assert.equal(after.coins, before.coins);
+  assert.deepEqual(after.quests, before.quests);
+  await Promise.all([page.waitForNavigation({ waitUntil: 'networkidle0' }), page.tap('#btn-back')]);
+  assert.equal(await page.$eval('[data-play="hidamari-garden"]', (a) => a.textContent.trim()), 'つづきから');
+  assert.equal(await page.$eval('[data-play="merge-journey"]', (a) => a.textContent.trim()), 'つづきから', 'マージの旅のセーブは別に残る');
+});
+
+await step('ひだまり菜園: バックアップ復元（日付・依頼数を表示）→ 収穫祭 → エンディング', async () => {
+  const HG = await import('../../docs/games/hidamari-garden/rules.js');
+  const HD = await import('../../docs/games/hidamari-garden/data.js');
+  const HS = await import('../../docs/games/hidamari-garden/save-schema.js');
+  let s = HG.newGame(5);
+  s.day = 128;
+  s.coins = 999;
+  s.pending = [];
+  s.quests = { toyo: 6, sora: 6, yuzu: 6 };
+  s.seeds = [...HD.CROP_IDS];
+  s.recipes = [...HD.GOOD_IDS];
+  s.bench = [{ r: null, left: 0 }, { r: null, left: 0 }, { r: null, left: 0 }];
+  s.bigCan = true;
+  s.flags = [...HD.FESTIVAL_FLAGS];
+  s.decor = ['flowerpot', 'fence', 'bench'];
+  s.orders.enabled = true;
+  s.dialogues = HD.QUEST_LIST.flatMap((q) => [`${q.id}-intro`, `${q.id}-thanks`]).concat(['opening', 'festivalReady']);
+  s = HG.normalize(s);
+  assert.deepEqual(HS.validate(s), []);
+  const file = join(OUT, 'hidamari-festival.json');
+  writeFileSync(file, JSON.stringify({ format: 'imhs-backup', gameId: 'hidamari-garden', schema: 1, exportedAt: new Date().toISOString(), data: s }));
+  await page.tap('#btn-settings');
+  await page.waitForSelector('.backup');
+  const idx = await page.$$eval('.backup', (rows) => rows.findIndex((r) => /ひだまり菜園/.test(r.textContent)));
+  assert.ok(idx >= 0, 'バックアップ欄にひだまり菜園');
+  await page.evaluate((k) => document.querySelectorAll('.backup')[k].querySelectorAll('.btn')[1].click(), idx);
+  await (await page.$('#file')).uploadFile(file);
+  await page.waitForSelector('#confirm:not([hidden])');
+  const txt = await page.$eval('#confirm', (e) => e.textContent);
+  assert.match(txt, /4年目 春 8日目/);
+  assert.match(txt, /18\/18/);
+  await page.$$eval('#confirm-actions .btn', (b) => b[1].click());
+  await page.waitForFunction(() => /復元しました/.test(document.querySelector('#toast').textContent));
+  await page.click('#btn-close');
+  await Promise.all([page.waitForNavigation({ waitUntil: 'networkidle0' }), page.tap('[data-play="hidamari-garden"]')]);
+  await page.waitForFunction(() => window.__hidamari?.state);
+  await page.tap('.card.festival .btn');
+  await page.waitForSelector('#talk:not([hidden])');
+  for (let k = 0; k < 6 && !(await page.$eval('#talk', (e) => e.hidden)); k++) { await page.tap('#talk-next'); await sleep(100); }
+  await page.waitForSelector('#modal:not([hidden])');
+  assert.match(await page.$eval('#modal-panel', (e) => e.textContent), /はじめての収穫祭/);
+  await page.screenshot({ path: join(OUT, 'e2e-hidamari-ending.png') });
+  await page.tap('#modal-panel .actions .btn');
+  await hgSaved(page);
+  assert.equal((await hgState(page)).cleared, true);
+  await hgSleep(page);
+  assert.equal((await hgState(page)).day, 129, 'クリア後も続けて遊べる');
 });
 
 await browser.close();

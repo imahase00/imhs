@@ -13,6 +13,19 @@
         "生産元はタップで何度でも無料。待ち時間やスタミナはありません。",
         "進行はこの端末に自動保存されます。ほかの端末へは⚙設定のバックアップで移せます。"
       ]
+    },
+    {
+      "id": "hidamari-garden",
+      "title": "ひだまり菜園",
+      "subtitle": "丘の上の、のんびり畑ぐらし",
+      "cover": "games/hidamari-garden/img/cover.webp",
+      "entry": "games/hidamari-garden/index.html",
+      "saveModule": "games/hidamari-garden/save-schema.js",
+      "description": [
+        "丘の上の小さな菜園を引き継いで、野菜や花を育て、ジャムやパイに加工して、村の人たちの依頼にこたえましょう。季節がめぐる畑で、はじめての収穫祭をめざします。",
+        "「おやすみ」を押すとすぐ次の日。待ち時間やスタミナはありません。",
+        "進行はこの端末に自動保存されます。ほかの端末へは⚙設定のバックアップで移せます。"
+      ]
     }
   ]
 }

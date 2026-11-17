@@ -1,7 +1,7 @@
 // IMHS Service Worker
 // docs/ 全体を対象に、asset-manifest.json に列挙された全ファイルを事前取得する。
 // VERSION は tools/build.mjs が内容ハッシュから自動更新する（手で編集しない）。
-const VERSION = '3e094938f32d';
+const VERSION = 'dccc0bd5ade5';
 
 const APP = 'imhs';
 const SCOPE = self.registration.scope;              // 例: https://user.github.io/imhs/

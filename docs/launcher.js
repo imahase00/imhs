@@ -187,11 +187,7 @@ $('file').addEventListener('change', async (e) => {
   const cur = await loadSave(g.id).catch(() => null);
   const body = [
     h('p', { text: `${g.title}のデータを、次のバックアップで上書きします。` }),
-    h('dl', { class: 'kv' },
-      h('dt', { text: '島' }), h('dd', { text: r.info.island }),
-      h('dt', { text: '所持金' }), h('dd', { text: `${r.info.coins}コイン` }),
-      h('dt', { text: '依頼' }), h('dd', { text: r.info.quests + (r.info.cleared ? '（灯台点灯済み）' : '') }),
-      h('dt', { text: '日時' }), h('dd', { text: r.info.date })),
+    h('dl', { class: 'kv' }, ...r.info.rows.flatMap(([k, v]) => [h('dt', { text: k }), h('dd', { text: v })])),
     h('p', { class: 'note', text: cur ? `現在のデータ（${cur.summary?.label ?? ''}・${fmtDate(cur.savedAt)}）は上書きされ、直前版として1つだけ残ります。` : '現在この端末にセーブはありません。' }),
   ];
   showConfirm('バックアップから復元', body, {
@@ -210,7 +206,7 @@ $('file').addEventListener('change', async (e) => {
 });
 
 function summaryOf(r) {
-  return { label: `${r.info.island}・${r.info.cleared ? '灯台に光が灯った' : '旅の途中'}`, coins: r.info.coins };
+  return { label: r.info.label, coins: r.info.coins };
 }
 
 function showConfirm(title, body, ok) {

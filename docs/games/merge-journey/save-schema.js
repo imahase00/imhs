@@ -150,7 +150,12 @@ export function describe(d, when) {
     date = t.toLocaleString('ja-JP', { year: 'numeric', month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' });
   }
   const done = ISLAND_IDS.reduce((a, id) => a + d.quests[id], 0);
-  return { island: isl.name, coins: d.coins, date, quests: `${done}/15`, cleared: d.cleared };
+  return {
+    island: isl.name, coins: d.coins, date, quests: `${done}/15`, cleared: d.cleared,
+    // ランチャーの復元確認に表示する項目と、セーブ一覧の見出し
+    rows: [['島', isl.name], ['所持金', `${d.coins}コイン`], ['依頼', `${done}/15${d.cleared ? '（灯台点灯済み）' : ''}`], ['日時', date]],
+    label: `${isl.name}・${d.cleared ? '灯台に光が灯った' : '旅の途中'}`,
+  };
 }
 
 export { itemKey };
