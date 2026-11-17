@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#2f4a2a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="IMHS">
+<meta name="format-detection" content="telephone=no">
+<title>森のとりで - IMHS</title>
+<link rel="manifest" href="../../manifest.webmanifest">
+<link rel="icon" href="../../icons/favicon-32.png" type="image/png">
+<link rel="apple-touch-icon" href="../../icons/apple-touch-icon.png">
+<link rel="stylesheet" href="game.css">
+<script type="module" src="main.js"></script>
+</head>
+<body>
+<canvas id="view" aria-label="森のとりでの戦場"></canvas>
+<div class="joy" id="joy" hidden><span class="knob" id="knob"></span></div>
+
+<div class="hud" id="hud" aria-busy="true">
+  <header class="top">
+    <a class="iconbtn" id="btn-back" href="../../index.html" aria-label="ランチャーへ戻る">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12H5m6-7-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </a>
+    <div class="status">
+      <div class="wave-pill" id="wave-pill">ウェーブ 1/15</div>
+      <div class="hp" aria-label="体力"><span class="hp-fill" id="hp-fill"></span><b id="hp-text"></b></div>
+    </div>
+    <span class="coin-pill" id="coins" aria-label="所持コイン"><i class="coin" aria-hidden="true"></i><b id="coin-num">0</b></span>
+    <button class="iconbtn" id="btn-settings" type="button" aria-label="設定・一時停止">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M7 5h3v14H7zM14 5h3v14h-3z"/></svg>
+    </button>
+  </header>
+  <div class="hint" id="hint" role="status" hidden></div>
+  <div class="bottom">
+    <div class="padcard" id="padcard" hidden></div>
+    <button class="btn wave-btn" id="btn-wave" type="button">次のウェーブへ ▶</button>
+    <div class="down" id="down" hidden>たおれた… <b id="down-t"></b>秒後にたき火のそばで起き上がります</div>
+  </div>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<div class="banner" id="save-banner" role="alert" hidden></div>
+<div class="modal" id="modal" hidden><div class="panel" id="modal-panel" role="dialog" aria-modal="true"></div></div>
+<div class="talk" id="talk" hidden>
+  <div class="talk-box" role="dialog" aria-label="お話">
+    <div class="talk-head"><strong id="talk-title"></strong><span id="talk-count"></span></div>
+    <p id="talk-text"></p>
+    <div class="talk-actions">
+      <button type="button" class="btn ghost small" id="talk-skip">スキップ</button>
+      <button type="button" class="btn small" id="talk-next">つぎへ ▶</button>
+    </div>
+  </div>
+</div>
+<noscript><p style="padding:2rem">JavaScript を有効にしてください。</p></noscript>
+</body>
+</html>

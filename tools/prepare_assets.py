@@ -1,7 +1,8 @@
 """IMG/ の原本から配信用コピーを docs/ に生成する。
 
 原本は読み取りのみで、移動・改名・上書きはしない。
-使い方:  python tools/prepare_assets.py
+使い方:  python tools/prepare_assets.py            （全ゲーム）
+        python tools/prepare_assets.py forest-fort（指定したゲームの画像だけ作り直す。素材表は全ゲーム分を更新）
 必要:    Pillow (pip install pillow)
 """
 from __future__ import annotations
@@ -15,6 +16,8 @@ from PIL import Image
 ROOT = Path(__file__).resolve().parent.parent
 SRC = ROOT / "IMG"          # 原本は IMG/マージの旅/ と IMG/ランチャー/ に整理済み
 SRC_DIRS = [SRC / "マージの旅", SRC / "ランチャー"]
+ONLY = sys.argv[1] if len(sys.argv) > 1 else None
+wants = lambda game: ONLY is None or ONLY == game  # noqa: E731
 DOCS = ROOT / "docs"
 GAME = DOCS / "games" / "merge-journey"
 GAME_ID = "merge-journey"
@@ -104,7 +107,7 @@ def main() -> int:
         with Image.open(src) as im:
             im.load()
             size = f"{im.width}×{im.height}"
-            if out:
+            if out and wants(GAME_ID):
                 dst = DOCS / out
                 dst.parent.mkdir(parents=True, exist_ok=True)
                 if kind in ("item", "gen"):
@@ -118,7 +121,10 @@ def main() -> int:
         rows.append((name, size, digest, usage, GAME_ID if not gid.startswith("ref-") else "—", gid, out or "（配信しない・参照のみ）"))
 
     rows += prepare_hidamari()
-    make_icons()
+    import assets_forest
+    rows += assets_forest.prepare(SRC / "森のとりで", DOCS, wants(assets_forest.GAME))
+    if wants(GAME_ID):
+        make_icons()
     write_table(rows)
     print(f"{len(rows)} 件を処理しました。")
     return 0
@@ -157,6 +163,7 @@ def write_table(rows) -> None:
         "- マージの旅: アイテム 192×192 / 生産元 224×224（WebP・透過保持）",
         "- ひだまり菜園: 一覧表（スプライトシート）を透明な隙間で自動分割し、余白を詰めて正方形に配置（WebP・透過保持）",
         "- 背景: 幅1600まで / 表紙: 幅900（WebP・縦横比保持）",
+        "- 森のとりで: 一覧表を自動分割。攻撃ポーズの離れた効果線・飛び道具は除去、白背景の壁は透明化（WebP・透過保持）",
         "- PWAアイコン: `docs/icons/`（りんご Lv.1 から合成）",
         "",
         f"| 原本ファイル | 原寸 | SHA1先頭 | 用途 | ゲームID / 素材ID | 配信パス（docs/ 相対） |",
@@ -249,7 +256,7 @@ def prepare_hidamari() -> list[tuple]:
         digest = hashlib.sha1(src.read_bytes()).hexdigest()[:10]
         with Image.open(src) as im:
             im.load()
-            parts = split_sheet(im.convert("RGBA"), cols, rws)
+            parts = split_sheet(im.convert("RGBA"), cols, rws) if wants(HG_ID) else []
             size = f"{im.width}×{im.height}"
         sub = {"plot": "plot", "item": "items", "decor": "decor", "face": "faces"}[kind]
         for pid, part in zip(ids, parts):
@@ -266,9 +273,10 @@ def prepare_hidamari() -> list[tuple]:
         with Image.open(src) as im:
             im.load()
             size = f"{im.width}×{im.height}"
-            dst = DOCS / HG_OUT / out
-            dst.parent.mkdir(parents=True, exist_ok=True)
-            resize_w(im.convert("RGB"), width).save(dst, "WEBP", quality=82, method=6)
+            if wants(HG_ID):
+                dst = DOCS / HG_OUT / out
+                dst.parent.mkdir(parents=True, exist_ok=True)
+                resize_w(im.convert("RGB"), width).save(dst, "WEBP", quality=82, method=6)
         rows.append((name, size, digest, usage, HG_ID, gid, f"{HG_OUT}/{out}"))
     return rows
 

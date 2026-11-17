@@ -6,6 +6,7 @@
 - マージの旅: アイテム 192×192 / 生産元 224×224（WebP・透過保持）
 - ひだまり菜園: 一覧表（スプライトシート）を透明な隙間で自動分割し、余白を詰めて正方形に配置（WebP・透過保持）
 - 背景: 幅1600まで / 表紙: 幅900（WebP・縦横比保持）
+- 森のとりで: 一覧表を自動分割。攻撃ポーズの離れた効果線・飛び道具は除去、白背景の壁は透明化（WebP・透過保持）
 - PWAアイコン: `docs/icons/`（りんご Lv.1 から合成）
 
 | 原本ファイル | 原寸 | SHA1先頭 | 用途 | ゲームID / 素材ID | 配信パス（docs/ 相対） |
@@ -66,3 +67,11 @@
 | 丘の上の小さな菜園.png | 1536×1024 | ec6ff7dc81 | 背景: 昼の菜園 | hidamari-garden / `bg-day` | `games/hidamari-garden/img/bg/day.webp` |
 | 灯りきらめく収穫祭の庭.png | 1536×1024 | c329149138 | 背景: 収穫祭の夕暮れ（エンディング） | hidamari-garden / `bg-festival` | `games/hidamari-garden/img/bg/festival.webp` |
 | 丘の庭の収穫かご.png | 1024×1536 | 6fd6d00683 | 表紙（ランチャーのゲームカード） | hidamari-garden / `cover` | `games/hidamari-garden/img/cover.webp` |
+| 森の守護者・八つの武器ポーズ.png | 1536×1024 | 5e7d53981c | 一覧表: 主人公（武器4段階×立ち・攻撃） | forest-fort / `hero-1・hero-2・hero-3・hero-4・hero-1a・hero-2a・hero-3a・hero-4a` | `games/forest-fort/img/sprites/*.webp` |
+| 森のとりでの動物仲間スプライト.png | 1536×1024 | 00987da508 | 一覧表: 仲間（4種×立ち・攻撃） | forest-fort / `rabbit・bear・squirrel・owl・rabbit-a・bear-a・squirrel-a・owl-a` | `games/forest-fort/img/sprites/*.webp` |
+| 森のとりでの8体のモンスター.png | 1536×1024 | 5cb8b4d323 | 一覧表: 敵（7種＋ボス） | forest-fort / `mushroom・wolf・crow・monkey・golem・caterpillar・wisp・boar` | `games/forest-fort/img/sprites/*.webp` |
+| 森のとりで建築アップグレード図鑑.png | 1536×1024 | 09c70fcd4f | 一覧表: 砦の中心4段階（下の段の囲いは使わない） | forest-fort / `core-1・core-2・core-3・core-4` | `games/forest-fort/img/sprites/*.webp` |
+| 八種の直線壁スプライト.png | 1536×1024 | 37f1c562c9 | 一覧表: 柵・城壁4段階（横向き・縦向き） | forest-fort / `wall-h-1・wall-h-2・wall-h-3・wall-h-4・wall-v-1・wall-v-2・wall-v-3・wall-v-4` | `games/forest-fort/img/sprites/*.webp` |
+| 森のとりで防衛アイテムスプライト集.png | 1536×1024 | 83e65f396f | 一覧表: 設備と小物 | forest-fort / `tower-1・tower-2・tower-3・campfire・coin・pad・berry・arrows` | `games/forest-fort/img/sprites/*.webp` |
+| 森に囲まれた四方向の草原.png | 1024×1536 | 7b006ea254 | マップ: 森の空き地（四方に小道） | forest-fort / `map` | `games/forest-fort/img/map.webp` |
+| 夕暮れの森の五人の守り手.png | 1024×1536 | c15854b1b0 | 表紙（ランチャーのゲームカード） | forest-fort / `cover` | `games/forest-fort/img/cover.webp` |

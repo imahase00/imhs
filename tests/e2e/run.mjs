@@ -430,7 +430,7 @@ async function hgSleep(p) {
 await step('ひだまり菜園: ランチャーに2本目として並び、通常の入口から起動（iPhone 16 幅）', async () => {
   await page.goto(URL0, { waitUntil: 'networkidle0' });
   const titles = await page.$$eval('.cover-title b', (b) => b.map((x) => x.textContent));
-  assert.deepEqual(titles, ['マージの旅', 'ひだまり菜園']);
+  assert.deepEqual(titles, ['マージの旅', 'ひだまり菜園', '森のとりで']);
   // スマホ幅は横スライド: 縦スクロールなしで1枚ずつ、点で切り替え
   const lay = await page.evaluate(() => ({ sw: document.documentElement.scrollWidth, vw: innerWidth, overflow: getComputedStyle(document.querySelector('#games')).overflowX }));
   assert.equal(lay.overflow, 'auto');
@@ -542,6 +542,95 @@ await step('ひだまり菜園: バックアップ復元（日付・依頼数を
   assert.equal((await hgState(page)).cleared, true);
   await hgSleep(page);
   assert.equal((await hgState(page)).day, 129, 'クリア後も続けて遊べる');
+});
+
+// ---------------------------------------------------------------- 森のとりで
+const ffState = (p) => p.evaluate(() => window.__forestFort && { save: window.__forestFort.save, phase: window.__forestFort.phase, hero: window.__forestFort.hero });
+async function ffSkip(p) {
+  for (let k = 0; k < 12; k++) {
+    if (await p.$eval('#talk', (el) => el.hidden)) return;
+    await p.tap('#talk-skip');
+    await sleep(120);
+  }
+}
+/** キー操作で目的地まで歩く（砦の建物は回り込む必要がない位置を選ぶ） */
+async function ffWalkTo(p, x, y) {
+  for (let k = 0; k < 80; k++) {
+    const h = (await ffState(p)).hero;
+    const dx = x - h.x;
+    const dy = y - h.y;
+    if (Math.hypot(dx, dy) < 30) return;
+    const keys = [];
+    if (Math.abs(dx) > 20) keys.push(dx > 0 ? 'd' : 'a');
+    if (Math.abs(dy) > 20) keys.push(dy > 0 ? 's' : 'w');
+    for (const k2 of keys) await p.keyboard.down(k2);
+    await sleep(Math.min(250, Math.max(40, Math.hypot(dx, dy) / 300 * 1000 * 0.6)));
+    for (const k2 of keys) await p.keyboard.up(k2);
+  }
+  throw new Error('目的地に着けません');
+}
+
+await step('森のとりで: バックアップ復元 → ランチャーの3本目から起動（iPhone 16 幅）', async () => {
+  const FS = await import('../../docs/games/forest-fort/sim.js');
+  const FV = await import('../../docs/games/forest-fort/save-schema.js');
+  const s = FS.newSave(9);
+  s.coins = 500;
+  s.pending = [];
+  s.seen = ['opening', 'pads'];
+  assert.deepEqual(FV.validate(s), []);
+  const file = join(OUT, 'forest-500.json');
+  writeFileSync(file, JSON.stringify({ format: 'imhs-backup', gameId: 'forest-fort', schema: 1, exportedAt: new Date().toISOString(), data: s }));
+  await page.goto(URL0, { waitUntil: 'networkidle0' });
+  await page.tap('#btn-settings');
+  await page.waitForSelector('.backup .btn');
+  const idx = await page.$$eval('.backup', (rows) => rows.findIndex((r) => /森のとりで/.test(r.textContent)));
+  await page.evaluate((k) => document.querySelectorAll('.backup')[k].querySelectorAll('.btn')[1].click(), idx);
+  await (await page.$('#file')).uploadFile(file);
+  await page.waitForSelector('#confirm:not([hidden])');
+  assert.match(await page.$eval('#confirm', (e) => e.textContent), /500コイン/);
+  await page.$$eval('#confirm-actions .btn', (b) => b[1].click());
+  await page.waitForFunction(() => /復元しました/.test(document.querySelector('#toast').textContent));
+  await page.click('#btn-close');
+  await page.tap('#pager button:nth-child(3)');
+  await page.waitForFunction(() => {
+    const r = document.querySelector('[data-play="forest-fort"]').getBoundingClientRect();
+    return r.left >= 0 && r.right <= innerWidth;
+  }, { timeout: 3000 });
+  await Promise.all([page.waitForNavigation({ waitUntil: 'networkidle0' }), page.tap('[data-play="forest-fort"]')]);
+  await page.waitForFunction(() => window.__forestFort, { timeout: 15000 });
+  await ffSkip(page);
+  const st = await ffState(page);
+  assert.equal(st.save.coins, 500);
+  assert.equal(st.phase, 'rest');
+  const geo = await page.evaluate(() => ({ cw: document.querySelector('#view').getBoundingClientRect().width, vw: innerWidth, sw: document.documentElement.scrollWidth }));
+  assert.equal(geo.cw, geo.vw);
+  assert.ok(geo.sw <= geo.vw);
+});
+
+await step('森のとりで: 台座へ歩いて立ち止まる → うさぎの弓兵が仲間に', async () => {
+  const D3 = await import('../../docs/games/forest-fort/data.js');
+  const pad = D3.PADS.find((p) => p.id === 'rabbit');
+  await ffWalkTo(page, pad.x, pad.y);
+  await page.waitForFunction(() => window.__forestFort.save.levels.rabbit >= 1, { timeout: 8000 });
+  const st = await ffState(page);
+  assert.ok(st.save.coins < 500);
+  await page.screenshot({ path: join(OUT, 'e2e-forest.png') });
+});
+
+await step('森のとりで: ウェーブ開始 → 途中で再読み込みしても強化は残り、ウェーブの前から再開', async () => {
+  await page.tap('#btn-wave');
+  await page.waitForFunction(() => window.__forestFort.phase === 'wave', { timeout: 5000 });
+  await sleep(3000);
+  await page.screenshot({ path: join(OUT, 'e2e-forest-wave.png') });
+  await page.waitForFunction(() => !window.__forestFort.saving(), { timeout: 5000 });
+  await page.reload({ waitUntil: 'networkidle0' });
+  await page.waitForFunction(() => window.__forestFort, { timeout: 15000 });
+  const st = await ffState(page);
+  assert.equal(st.phase, 'rest');
+  assert.equal(st.save.wave, 1);
+  assert.ok(st.save.levels.rabbit >= 1);
+  await Promise.all([page.waitForNavigation({ waitUntil: 'networkidle0' }), page.tap('#btn-back')]);
+  assert.equal(await page.$eval('[data-play="forest-fort"]', (a) => a.textContent.trim()), 'つづきから');
 });
 
 await browser.close();

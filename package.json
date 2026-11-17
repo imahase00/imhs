@@ -9,7 +9,8 @@
     "test:e2e": "node tests/e2e/run.mjs",
     "test:public": "node tests/e2e/public.mjs",
     "serve": "node tools/serve.mjs",
-    "sim": "node tools/sim-hidamari.mjs 30"
+    "sim": "node tools/sim-hidamari.mjs 30",
+    "sim:forest": "node tools/sim-forest.mjs 8"
   },
   "devDependencies": {
     "puppeteer-core": "^24.43.1"
