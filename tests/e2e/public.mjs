@@ -66,10 +66,29 @@ try {
   s = await page.evaluate(() => window.__mergeJourney.state);
   assert.equal(s.coins, 10);
   await page.tap('[data-gen="fruit"]');
-  const imgsOk = await page.evaluate(() => [...document.images].filter((i) => i.getAttribute('src')).every((i) => i.complete && i.naturalWidth > 0));
+  await sleep(600); // 生成直後の画像の読み込みを待つ
+  const broken = await page.evaluate(() => [...document.images].filter((i) => i.getAttribute('src') && !(i.complete && i.naturalWidth > 0)).map((i) => i.getAttribute('src')));
+  if (broken.length) console.log('  表示できない画像:', broken);
+  const imgsOk = broken.length === 0;
   assert.ok(imgsOk);
   await page.screenshot({ path: join(OUT, 'public-offline.png') });
   ok('オフラインで再起動 → 「つづきから」→ 保存再開・画像表示・生成');
+
+  // ひだまり菜園もオフラインのまま起動して遊べる
+  await page.goto(URL0, { waitUntil: 'load' });
+  await Promise.all([page.waitForNavigation({ waitUntil: 'load' }), page.tap('[data-play="hidamari-garden"]')]);
+  await page.waitForFunction(() => window.__hidamari?.state);
+  for (let k = 0; k < 10 && !(await page.$eval('#talk', (e) => e.hidden)); k++) await page.tap('#talk-skip');
+  await page.tap('.plot[data-i="0"]');
+  await page.tap('.plot[data-i="0"]');
+  const hg = await page.evaluate(() => window.__hidamari.state);
+  assert.equal(hg.plots[0].c, 'carrot');
+  assert.ok(hg.plots[0].w, '水やり済み');
+  await sleep(600);
+  const broken2 = await page.evaluate(() => [...document.images].filter((i) => i.getAttribute('src') && i.loading !== 'lazy' && !(i.complete && i.naturalWidth > 0)).map((i) => i.getAttribute('src')));
+  assert.deepEqual(broken2, []);
+  await page.screenshot({ path: join(OUT, 'public-hidamari-offline.png') });
+  ok('ひだまり菜園: オフラインで起動 → 種まき・水やり・画像表示');
 } catch (e) {
   problems.push('FAIL: ' + e.message);
 } finally {
