@@ -24,12 +24,14 @@ let games = [];
 let sw = null;
 
 // ---- ゲームカード ----
+let retryTimer = null;
 async function renderGames() {
   const box = $('games');
   const cards = [];
+  let failed = false;
   for (const g of games) {
     let rec = null;
-    try { rec = await loadSave(g.id); } catch { /* 保存領域が使えない環境 */ }
+    try { rec = await loadSave(g.id); } catch { failed = true; /* 保存領域が使えない・応答しない */ }
     const label = rec?.summary?.label;
     const detail = h('div', { class: 'details', hidden: true }, ...(g.description || []).map((t) => h('p', { text: t })));
     const detailBtn = h('button', {
@@ -53,6 +55,9 @@ async function renderGames() {
   const keep = currentGameId();
   box.replaceChildren(...cards);
   renderPager(keep ?? lastGameId());
+  // セーブを読めなかったときは、少し待って読み直す（「つづきから」の表示を正しくするため）
+  clearTimeout(retryTimer);
+  if (failed) retryTimer = setTimeout(() => renderGames().catch(() => {}), 2000);
 }
 
 // ---- スマホ幅の横スライド（どのゲームを見ていたかを覚えておく） ----
@@ -315,7 +320,8 @@ async function boot() {
     $('games').textContent = 'ゲーム一覧を読み込めませんでした。';
     return;
   }
-  await renderGames();
+  // セーブの読み込みとオフライン準備の確認は同時に進める（どちらかが遅れても、もう一方は止まらない）
+  renderGames().catch((e) => console.warn(e));
   // ゲームから戻ったとき（bfcache 復帰を含む）に表示を更新
   window.addEventListener('pageshow', (e) => { if (e.persisted) renderGames(); });
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') renderGames(); });

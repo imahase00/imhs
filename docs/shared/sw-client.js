@@ -38,6 +38,18 @@ export async function initServiceWorker(swUrl, hooks = {}) {
     onStatus(s && s.ready ? { state: 'ready', ...s } : { state: 'incomplete', ...(s || {}) });
   }
 
+  // 登録はブラウザ内で前の作業（新しい版の取り込みなど）の順番待ちになることがある。
+  // 待たずに、すでにある登録から先に状態を表示する。
+  try {
+    const existing = await navigator.serviceWorker.getRegistration();
+    if (existing) {
+      registration = existing;
+      if (existing.waiting && navigator.serviceWorker.controller) onUpdate();
+      watchInstalling(existing.installing);
+      refresh();
+    }
+  } catch { /* 取得できなければ登録を待つ */ }
+
   try {
     registration = await navigator.serviceWorker.register(swUrl, { updateViaCache: 'none' });
   } catch (e) {

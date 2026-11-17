@@ -1,6 +1,6 @@
 {
  "app": "imhs",
- "version": "f737a9853f7f",
+ "version": "a726c3be686f",
  "files": [
   "games.json",
   "games/forest-fort/audio.js",

@@ -19,10 +19,14 @@ export class ConflictError extends Error {
 }
 
 let dbPromise = null;
+// iPhone の Safari では、画面の切り替え直後などに open が応答しないことがある。
+// 一定時間で見切りをつけ、次の呼び出しで開き直す（待ち続けて画面が止まるのを防ぐ）。
+const OPEN_TIMEOUT = 4000;
 
 export function openDB() {
   if (dbPromise) return dbPromise;
   dbPromise = new Promise((resolve, reject) => {
+    const timer = setTimeout(() => { dbPromise = null; reject(new Error('保存領域の応答がありません')); }, OPEN_TIMEOUT);
     if (!('indexedDB' in globalThis)) {
       reject(new Error('この環境では IndexedDB が使えません'));
       return;
@@ -33,11 +37,12 @@ export function openDB() {
       if (!db.objectStoreNames.contains(STORE)) db.createObjectStore(STORE);
     };
     req.onsuccess = () => {
+      clearTimeout(timer);
       const db = req.result;
       db.onversionchange = () => { db.close(); dbPromise = null; };
       resolve(db);
     };
-    req.onerror = () => { dbPromise = null; reject(req.error); };
+    req.onerror = () => { clearTimeout(timer); dbPromise = null; reject(req.error); };
     req.onblocked = () => { /* 他タブが古い接続を保持。onsuccess を待つ */ };
   });
   return dbPromise;

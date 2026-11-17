@@ -313,14 +313,23 @@ $('btn-back').addEventListener('click', (e) => {
   if (world?.phase === 'wave') {
     e.preventDefault();
     confirmBox('ランチャーへ戻りますか？', 'ウェーブの途中です。戻ると、このウェーブは最初からやり直しになります（強化とコインはそのまま）。', 'ランチャーへ', () => {
-      S.syncSave(world);
-      persist().then(() => { location.href = '../../index.html'; });
+      audio.pause();
+      leaveToLauncher();
     });
     return;
   }
-  if (world) { S.syncSave(world); persist(); }
+  // 保存の書き込みを終えてから移る（書き込み中に画面が切り替わると、iPhone で次の画面の読み込みが止まることがある）
+  e.preventDefault();
   audio.pause();
+  leaveToLauncher();
 });
+async function leaveToLauncher() {
+  if (world) S.syncSave(world);
+  persist();
+  const until = performance.now() + 1500;
+  while ((saving || dirty) && !blocked && performance.now() < until) await new Promise((r) => setTimeout(r, 50));
+  location.href = '../../index.html';
+}
 
 // ---- 一時停止・設定 ----
 function togglePause(force) {

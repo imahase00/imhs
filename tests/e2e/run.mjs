@@ -631,6 +631,8 @@ await step('森のとりで: ウェーブ開始 → 途中で再読み込みし�
   assert.ok(st.save.levels.rabbit >= 1);
   await Promise.all([page.waitForNavigation({ waitUntil: 'networkidle0' }), page.tap('#btn-back')]);
   assert.equal(await page.$eval('[data-play="forest-fort"]', (a) => a.textContent.trim()), 'つづきから');
+  // 戻った直後に「確認中…」のまま止まらない
+  await page.waitForFunction(() => !/確認中/.test(document.querySelector('#offline-text').textContent), { timeout: 3000 });
 });
 
 await browser.close();
