@@ -63,7 +63,8 @@ function play(seed, verbose) {
       restTime += dt;
       const want = nextBuy();
       if (want && save.coins >= want.st.cost - want.st.paid) {
-        inp = toward(want.p);
+        // 1段階上げた直後の台座は、いったん出てから乗り直す
+        inp = w.hero.padLock === want.p.id ? toward({ x: want.p.x + 160, y: want.p.y + 60 }) : toward(want.p);
       } else if (want && time < farmUntil) {
         // 足りなければ休憩中の魔物を倒して稼ぐ
         const e = w.enemies.find((x) => x.trickle);

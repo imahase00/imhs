@@ -165,3 +165,111 @@ test('セーブ形式: 不正なデータを拒否し、バックアップを検
   assert.equal(b.info.rows[0][1], '0/15');
   assert.equal(parseBackup({ format: 'imhs-backup', gameId: 'hidamari-garden', schema: 1, data: s }).ok, false);
 });
+
+// ---- 試遊の指摘を受けた動き ----
+const mkEnemy = (w, type, x, y, extra = {}) => {
+  const b = D.ENEMIES[type];
+  const e = { id: w.nextId++, type, kind: type, x, y, hp: 999, max: 999, speed: b.speed, dmg: b.dmg, cd: 0, baseCd: b.cd, radius: b.radius, size: b.size, coins: 1, flying: !!b.flying, ranged: b.ranged ?? 0, split: 0, blur: 0, wallMult: 1, trickle: false, face: 1, hurtT: 0, attackT: 0, walkT: 0, kx: 0, ky: 0, bossT: 9, action: null, ...extra };
+  w.enemies.push(e);
+  return e;
+};
+const inside = (p) => p.x > D.FORT.x1 && p.x < D.FORT.x2 && p.y > D.FORT.y1 && p.y < D.FORT.y2;
+
+test('休憩中: 主人公が柵の中にいれば、魔物は柵の外をうろつくだけ（柵に傷をつけず、中に入らない）', () => {
+  const s = S.newSave(4);
+  const w = S.createWorld(s);
+  w.hero.x = D.CORE_POS.x - 150;
+  w.hero.y = D.CORE_POS.y + 200;
+  for (let i = 0; i < 40 * 30; i++) {
+    S.step(w, STILL, 1 / 30);
+    for (const e of w.enemies) assert.ok(!inside(e) || e.flying, `魔物が柵の中にいる (${Math.round(e.x)},${Math.round(e.y)})`);
+  }
+  assert.ok(w.enemies.length > 0);
+  for (const side of ['n', 's', 'w', 'e']) assert.equal(w.walls[side].hp, w.walls[side].max);
+  assert.equal(w.hero.hp, w.hero.maxHp);
+});
+
+test('ウェーブ中: 押し返されても無事な柵はすり抜けない（壊れた柵からは入れる）', () => {
+  const s = S.newSave(4);
+  const w = S.createWorld(s);
+  w.phase = 'wave';
+  const e = mkEnemy(w, 'wolf', D.CORE_POS.x, D.FORT.y1 - 20);
+  e.ky = 3000;   // 柵の内側へ強く押す
+  S.step(w, STILL, 1 / 30);
+  assert.ok(e.y <= D.FORT.y1, `柵の外にとどまる y=${e.y}`);
+  w.walls.n.hp = 0;
+  e.ky = 3000;
+  S.step(w, STILL, 1 / 30);
+  assert.ok(e.y > D.FORT.y1, '壊れた柵からは入れる');
+});
+
+test('ウェーブ中: 敵は中心をめざし、離れた主人公は追わない（すぐ近くなら反撃）', () => {
+  const s = S.newSave(4);
+  const w = S.createWorld(s);
+  w.phase = 'wave';
+  w.hero.x = D.CORE_POS.x + 300;
+  w.hero.y = D.FORT.y1 - 250;
+  const e = mkEnemy(w, 'mushroom', D.CORE_POS.x, D.FORT.y1 - 400);
+  const y0 = e.y;
+  run(w, 1);
+  assert.ok(e.y > y0 + 30, '中心（南）へ進む');
+  assert.ok(Math.abs(e.x - D.CORE_POS.x) < 40, '主人公のほうへ寄り道しない');
+  const hp = w.hero.hp;
+  w.hero.x = e.x + 40;
+  w.hero.y = e.y;
+  run(w, 2);
+  assert.ok(w.hero.hp < hp, 'すぐ近くの主人公には反撃する');
+});
+
+test('台座: 立ち止まって0.8秒は払わない・1段階で止まる・出て乗り直すと次へ', () => {
+  const s = S.newSave(1);
+  s.coins = 400;
+  const w = S.createWorld(s);
+  const pad = S.padById('rabbit');
+  w.hero.x = pad.x;
+  w.hero.y = pad.y;
+  run(w, 0.5);
+  assert.equal(s.coins, 400, '0.5秒ではまだ払わない');
+  run(w, 3);
+  assert.equal(s.levels.rabbit, 1);
+  assert.equal(s.coins, 400 - pad.cost[0], '1段階で止まる');
+  w.hero.x = pad.x + 200;
+  run(w, 0.2);
+  w.hero.x = pad.x;
+  run(w, 3);
+  assert.equal(s.levels.rabbit, 2, '乗り直すと次の段階へ');
+});
+
+test('台座: ウェーブ中、近くに敵がいる間は払わない', () => {
+  const s = S.newSave(1);
+  s.coins = 400;
+  const w = S.createWorld(s);
+  w.phase = 'wave';
+  const pad = S.padById('rabbit');
+  w.hero.x = pad.x;
+  w.hero.y = pad.y;
+  mkEnemy(w, 'mushroom', pad.x + 150, pad.y, { speed: 0 });
+  run(w, 2);
+  assert.equal(s.coins, 400);
+});
+
+test('うさぎの弓兵は、攻められている柵のほうへ砦の中を動く（柵の外には出ない）', () => {
+  const s = S.newSave(1);
+  s.levels.rabbit = 1;
+  const w = S.createWorld(s);
+  w.phase = 'wave';
+  const a = w.allies[0];
+  const x0 = a.x;
+  mkEnemy(w, 'golem', D.FORT.x2 + 120, a.post.y, { speed: 0, hp: 99999, max: 99999 });
+  run(w, 3);
+  assert.ok(a.x > x0 + 100, `東へ寄る ${Math.round(x0)}→${Math.round(a.x)}`);
+  assert.ok(inside(a), '砦の中にとどまる');
+});
+
+test('コインは最初から広い範囲で吸い寄せられる', () => {
+  const s = S.newSave(1);
+  const w = S.createWorld(s);
+  w.pickups.push({ x: w.hero.x + 250, y: w.hero.y, value: 5, t: 0, fly: false });
+  run(w, 1.5);
+  assert.equal(s.coins, 5);
+});

@@ -176,7 +176,14 @@ function handleEvents(events) {
         break;
       case 'hurt': audio.sfx('hurt'); break;
       case 'heroDown': audio.sfx('down'); break;
-      case 'wallHit': audio.sfx('wall'); if (e.broken) toast('柵が壊されました！ 中心を守りましょう'); break;
+      case 'wallHit':
+        audio.sfx('wall');
+        if (e.broken) { toast(`${SIDE_NAMES[e.side]}の柵が壊されました！ 中心を守りましょう`); wallToastAt[e.side] = performance.now(); }
+        else if (performance.now() - (wallToastAt[e.side] ?? -1e9) > 6000) {
+          wallToastAt[e.side] = performance.now();
+          toast(`${SIDE_NAMES[e.side]}の柵が攻撃されています（のこり ${Math.round(world.walls[e.side].hp / world.walls[e.side].max * 100)}%）`);
+        }
+        break;
       case 'bossTell': audio.sfx('tell'); break;
       case 'stomp': audio.sfx('stomp'); break;
       case 'bossAppear': audio.setSong('boss'); break;
@@ -206,6 +213,8 @@ function handleEvents(events) {
     }
   }
 }
+const SIDE_NAMES = { n: '北', s: '南', w: '西', e: '東' };
+const wallToastAt = {};
 function bump() {
   const c = $('coins');
   c.classList.remove('bump'); void c.offsetWidth; c.classList.add('bump');
@@ -253,7 +262,7 @@ function renderHud() {
     ? (save.cleared ? `休憩中・果てしない夜 ${wave}` : `休憩中・次は ${wave}/${total}`)
     : `夜 ${wave}${wave <= total ? `/${total}` : ''}・のこり ${S.remainingEnemies(w)}`;
   const onPad = hp.onPad;
-  const key = [waveText, save.coins, Math.ceil(hp.hp), hp.maxHp, rest, onPad, onPad ? save.paid[onPad] ?? 0 : 0, hp.deadT > 0 ? Math.ceil(hp.deadT) : 0, hintText()].join('|');
+  const key = [waveText, save.coins, Math.ceil(hp.hp), hp.maxHp, rest, onPad, onPad ? save.paid[onPad] ?? 0 : 0, hp.padWait, hp.deadT > 0 ? Math.ceil(hp.deadT) : 0, hintText()].join('|');
   if (key === hudCache) return;
   hudCache = key;
   $('wave-pill').textContent = waveText;
@@ -276,10 +285,18 @@ function renderHud() {
       h('span', { class: 'lv', text: `段階 ${st.level} → ${st.level + 1}` }),
       h('b', { text: p.name }),
       h('p', { text: padDesc(p, st.level) }),
-      h('p', { text: save.coins > 0 ? `立ち止まるとコインを払います（のこり ${st.cost - st.paid}）` : `コインが足りません（のこり ${st.cost - st.paid}）` }),
+      h('p', { text: padStatusText(st) }),
     );
     card.hidden = false;
   } else card.hidden = true;
+  function padStatusText(st) {
+    const left = st.cost - st.paid;
+    if (hp.padWait === 3) return 'この段階は完成しました。続けて強化するときは、いったん台座から出て、もう一度乗ってください';
+    if (hp.padWait === 2) return `近くに魔物がいる間は支払いません（のこり ${left}）`;
+    if (save.coins <= 0) return `コインが足りません（のこり ${left}）`;
+    if (hp.padWait === 1) return `そのまま立ち止まると支払いが始まります（のこり ${left}）`;
+    return `支払い中…（のこり ${left}）`;
+  }
   const ht = hintText();
   $('hint').textContent = ht;
   $('hint').hidden = !ht;

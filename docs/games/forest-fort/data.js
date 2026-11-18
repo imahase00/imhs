@@ -30,7 +30,7 @@ export const HERO = {
   regenRest: 6,          // 休憩時間の回復（毎秒）
   regenFire: 14,         // たき火のそばの回復（毎秒、ウェーブ中も）
   fireRange: 230,
-  magnet: 150,           // コインを引き寄せる範囲
+  magnet: 300,           // コインを引き寄せる範囲（最初から画面の4分の1幅ほど）
 };
 // 武器: range 射程 / dmg 威力 / cd 間隔(秒) / speed 弾の速さ（0 は近接）/ pierce 貫通数 / splash 範囲
 export const WEAPONS = [
@@ -43,12 +43,16 @@ export const WEAPONS = [
 // ---- 仲間 ----
 // post: 持ち場（砦の内側）。kind: ranged 遠距離 / guard 近接で持ち場を守る / heal 回復
 export const ALLIES = {
-  rabbit:   { name: 'うさぎの弓兵',     kind: 'ranged', hp: 70,  range: 360, dmg: 9,  cd: 1.0, speed: 0,   shot: 'arrow', splash: 0 },
+  rabbit:   { name: 'うさぎの弓兵',     kind: 'ranged', hp: 70,  range: 360, dmg: 9,  cd: 1.0, speed: 150,   shot: 'arrow', splash: 0 },
   bear:     { name: 'くまの盾兵',       kind: 'guard',  hp: 220, range: 70,  dmg: 15, cd: 0.8, speed: 190, shot: 'swing', splash: 0, guard: 230 },
-  squirrel: { name: 'りすの投石兵',     kind: 'ranged', hp: 60,  range: 320, dmg: 11, cd: 1.3, speed: 0,   shot: 'stone', splash: 70 },
-  owl:      { name: 'ふくろうの癒し手', kind: 'heal',   hp: 60,  range: 300, dmg: 0,  cd: 1.6, speed: 0,   heal: 9 },
+  squirrel: { name: 'りすの投石兵',     kind: 'ranged', hp: 60,  range: 320, dmg: 11, cd: 1.3, speed: 135,   shot: 'stone', splash: 70 },
+  owl:      { name: 'ふくろうの癒し手', kind: 'heal',   hp: 60,  range: 300, dmg: 0,  cd: 1.6, speed: 120,   heal: 9 },
 };
-export const ALLY_REVIVE = 12;     // 倒れた仲間がウェーブ中に起き上がるまでの秒数
+export const ALLY_REVIVE = 12;
+export const ALLY_LEASH = 320;     // 遠距離の仲間が持ち場から離れてよい距離（砦の中だけを動く）
+export const ALLY_WATCH = 750;     // この距離の敵がいる柵のほうへ寄っていく
+// 敵の近接の反撃範囲（ウェーブ中は中心をめざすが、これより近い主人公・仲間には反撃する）
+export const ENEMY_CLOSE = 80;     // 倒れた仲間がウェーブ中に起き上がるまでの秒数
 export const SMITH_MULT = [1, 1.35, 1.8, 2.4];   // 仲間の武器（鍛冶場）の段階ごとの威力倍率
 
 // ---- 見張り台 ----
@@ -96,10 +100,12 @@ export const ALLY_POSTS = {
   squirrel: [[930, 1930], [1118, 1930], [1024, 1960]],
   owl: [[930, 1640], [1118, 1640]],
 };
-export const PAD_RADIUS = 70;
+export const PAD_RADIUS = 70;      // 台座の絵の大きさ
+export const PAD_TRIGGER = 50;     // 乗っていると判定する範囲（絵より少し小さく）
+export const PAY_DELAY = 0.8;      // 立ち止まってから支払いが始まるまでの秒数
 export const PAY_RATE = 1.4;       // 台座に立ったとき、費用をおよそ何秒で払い終えるか
 export const PAY_MIN_RATE = 25;    // 1秒あたりの最低支払い額
-export const STAT_STEP = { hp: 30, speed: 0.12, magnet: 90 };
+export const STAT_STEP = { hp: 30, speed: 0.12, magnet: 130 };
 
 // ---- 敵 ----
 // coins: 落とすコイン / flying: 柵を越える / ranged: 遠くから投げる / split: 倒すと分かれる / blur: 近くの敵への仲間の攻撃を弱める
@@ -131,8 +137,8 @@ export const MAX_ENEMIES = 70;   // 同時に出る敵の上限（iPhone で重�
 const W = (groups, interval, extra = {}) => ({ groups, interval, ...extra });
 export const WAVES = [
   W([['mushroom', 10, 'n']], 1.1),
-  W([['mushroom', 12, 'n'], ['mushroom', 6, 's']], 0.9),
-  W([['mushroom', 10, '*'], ['wolf', 6, 'w']], 0.85),
+  W([['mushroom', 9, 'n'], ['mushroom', 9, 'e']], 0.9),
+  W([['mushroom', 10, '*'], ['wolf', 6, '*']], 0.85),
   W([['wolf', 10, '*'], ['crow', 6, 'n'], ['mushroom', 10, 's']], 0.75),
   W([['mushroom', 14, '*'], ['wolf', 8, '*'], ['big-wolf', 1, 'n']], 0.7, { boss: true }),
   W([['monkey', 8, 'e'], ['wolf', 10, '*'], ['crow', 8, '*']], 0.7),
@@ -146,7 +152,7 @@ export const WAVES = [
   W([['golem', 7, '*'], ['wisp', 7, '*'], ['crow', 14, '*'], ['wolf', 18, '*'], ['monkey', 6, '*']], 0.45),
   W([['boar', 1, 'n'], ['wolf', 16, '*'], ['wisp', 8, '*'], ['golem', 6, '*']], 0.6, { boss: true, final: true }),
 ];
-export const WAVE_HP_GROWTH = 0.065;  // ウェーブごとの敵の体力の伸び
+export const WAVE_HP_GROWTH = 0.16;  // ウェーブごとの敵の体力の伸び
 export const WAVE_REWARD = (w) => 40 + 22 * w;
 // 休憩時間に森から出てくる弱い敵（稼ぎ用。報酬は控えめ）
 export const TRICKLE = {

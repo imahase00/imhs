@@ -202,6 +202,73 @@ export function draw(g, cam, w, ui) {
   // 夜
   if (w.phase === 'wave') drawNight(g, cam, w, ui);
   g.restore();
+  if (w.phase === 'wave') drawOffscreen(g, cam, w, ui);
+}
+
+// 画面の外にいる敵の方向を、画面の端の矢印と数で示す（8方向にまとめる）
+function drawOffscreen(g, cam, w, ui) {
+  const cw = cam.w * cam.scale;
+  const ch = cam.h * cam.scale;
+  const cx = cw / 2;
+  const cy = ch / 2;
+  const groups = new Map();
+  for (const e of w.enemies) {
+    if (e.trickle) continue;
+    const sx = (e.x - cam.x) * cam.scale;
+    const sy = (e.y - cam.y) * cam.scale;
+    if (sx > 0 && sx < cw && sy > 0 && sy < ch) continue;
+    const ang = Math.atan2(sy - cy, sx - cx);
+    const k = ((Math.round(ang / (Math.PI / 4)) % 8) + 8) % 8;
+    const gr = groups.get(k) ?? { n: 0, boss: false };
+    gr.n++;
+    gr.boss ||= e.boss || e.elite;
+    groups.set(k, gr);
+  }
+  if (!groups.size) return;
+  g.save();
+  g.setTransform(ui.dpr, 0, 0, ui.dpr, 0, 0);
+  const top = 110;       // 上の操作パネルと重ならないように
+  const bottom = 40;
+  for (const [k, gr] of groups) {
+    const ang = k * Math.PI / 4;
+    const dx = Math.cos(ang);
+    const dy = Math.sin(ang);
+    // 画面の端（余白つき）との交点
+    const mx = cw / 2 - 26;
+    const myTop = cy - top;
+    const myBot = ch - cy - bottom;
+    const tx = dx !== 0 ? mx / Math.abs(dx) : Infinity;
+    const ty = dy < 0 ? myTop / -dy : dy > 0 ? myBot / dy : Infinity;
+    const s = Math.min(tx, ty);
+    const x = cx + dx * s;
+    const y = cy + dy * s;
+    const size = Math.min(30, 16 + gr.n * 1.2);
+    g.save();
+    g.translate(x, y);
+    g.rotate(ang);
+    g.fillStyle = gr.boss ? 'rgba(200,60,230,0.92)' : 'rgba(220,70,50,0.9)';
+    g.strokeStyle = 'rgba(255,245,220,0.95)';
+    g.lineWidth = 2.5;
+    g.beginPath();
+    g.moveTo(size, 0);
+    g.lineTo(-size * 0.6, -size * 0.7);
+    g.lineTo(-size * 0.3, 0);
+    g.lineTo(-size * 0.6, size * 0.7);
+    g.closePath();
+    g.fill();
+    g.stroke();
+    g.restore();
+    g.font = '800 14px "Hiragino Maru Gothic ProN", "BIZ UDPGothic", sans-serif';
+    g.textAlign = 'center';
+    g.textBaseline = 'middle';
+    const lx = x - dx * (size + 14);
+    const ly = y - dy * (size + 14);
+    g.fillStyle = 'rgba(40,30,15,0.8)';
+    g.beginPath(); g.arc(lx, ly, 13, 0, Math.PI * 2); g.fill();
+    g.fillStyle = '#fff6d8';
+    g.fillText(String(gr.n), lx, ly + 1);
+  }
+  g.restore();
 }
 
 function wallPieces(g, w, side) {
@@ -273,6 +340,15 @@ function drawPad(g, w, p, t) {
       g.fillStyle = '#ffe58a';
       g.beginPath(); g.ellipse(p.x, p.y, r, r * 0.65, 0, 0, Math.PI * 2); g.fill();
       g.globalAlpha = 1;
+      // 立ち止まってから支払いが始まるまでの輪（白）
+      const c = w.hero.padCharge ?? 0;
+      if (c > 0 && c < 1) {
+        g.strokeStyle = '#ffffff';
+        g.lineWidth = 10;
+        g.beginPath();
+        g.ellipse(p.x, p.y, r * 1.02, r * 0.68, 0, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * c);
+        g.stroke();
+      }
     }
   }
   // 何が強くなるかの絵

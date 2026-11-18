@@ -4,7 +4,7 @@
 
 import {
   WORLD, CORE_POS, FORT, ENTRANCES, BOUNDS, HERO, WEAPONS, ALLIES, ALLY_REVIVE, SMITH_MULT, TOWERS,
-  CORE_HP, WALL_HP, PADS, ALLY_POSTS, PAD_RADIUS, PAY_RATE, PAY_MIN_RATE, STAT_STEP, ENEMIES, MINI, ELITES, BOSS,
+  CORE_HP, WALL_HP, PADS, ALLY_POSTS, PAD_TRIGGER, PAY_DELAY, ALLY_LEASH, ALLY_WATCH, ENEMY_CLOSE, PAY_RATE, PAY_MIN_RATE, STAT_STEP, ENEMIES, MINI, ELITES, BOSS,
   MAX_ENEMIES, WAVES, WAVE_HP_GROWTH, WAVE_REWARD, TRICKLE, ENDLESS,
 } from './data.js';
 
@@ -428,6 +428,7 @@ function updateAllies(w, dt) {
     }
     a.cd -= dt;
     a.moving = 0;
+    if (def.kind !== 'guard') moveSupport(w, a, def, dt);
     if (def.kind === 'heal') {
       if (a.cd <= 0) {
         a.cd = def.cd;
@@ -485,6 +486,72 @@ function updateAllies(w, dt) {
   }
 }
 
+/** 砦の内側（柵から少し離れた範囲）に収める */
+function clampInside(p, m = 60) {
+  p.x = clamp(p.x, FORT.x1 + m, FORT.x2 - m);
+  p.y = clamp(p.y, FORT.y1 + m, FORT.y2 - m);
+}
+/**
+ * 遠距離の仲間・癒し手の移動: 攻められている柵のほうへ寄り、柵越しに撃つ。
+ * 敵がいなければ持ち場へ戻り、休憩中は持ち場のまわりを少し歩く。砦の外へは出ない。
+ */
+function moveSupport(w, a, def, dt) {
+  let goal = null;
+  if (def.kind === 'heal') {
+    // 傷ついた味方（砦の中）の近くへ
+    let worst = null;
+    for (const t of [w.hero, ...w.allies]) {
+      if (t === a || t.deadT > 0 || t.hp >= t.maxHp * 0.9 || !inFort(t)) continue;
+      if (!worst || t.hp / t.maxHp < worst.hp / worst.maxHp) worst = t;
+    }
+    if (worst) goal = { x: worst.x + (a.idx ? 70 : -70), y: worst.y + 30 };
+  } else {
+    let near = null;
+    let bd = ALLY_WATCH * ALLY_WATCH;
+    for (const e of w.enemies) {
+      if (e.hp <= 0) continue;
+      const d = dist2(e, a.post);
+      if (d < bd) { bd = d; near = e; }
+    }
+    if (near) {
+      // 敵の方向の柵の内側へ寄る。射程に入っていれば、その場で撃つ
+      if (dist2(near, a) < (def.range * 0.85) ** 2) goal = { x: a.x, y: a.y };
+      else {
+        goal = { x: near.x, y: near.y };
+        clampInside(goal, 70);
+      }
+    }
+  }
+  if (!goal) {
+    if (w.phase === 'rest') {
+      // 休憩中は持ち場のまわりをゆっくり歩く
+      a.idleT = (a.idleT ?? 0) - dt;
+      if (a.idleT <= 0 || !a.idle) {
+        a.idleT = 2.5 + rand(w) * 3;
+        a.idle = { x: a.post.x + (rand(w) - 0.5) * 90, y: a.post.y + (rand(w) - 0.5) * 60, slow: true };
+      }
+      goal = a.idle;
+    } else goal = a.post;
+  }
+  // 持ち場から離れすぎない
+  const lx = goal.x - a.post.x;
+  const ly = goal.y - a.post.y;
+  const ll = Math.hypot(lx, ly);
+  if (ll > ALLY_LEASH) goal = { x: a.post.x + lx / ll * ALLY_LEASH, y: a.post.y + ly / ll * ALLY_LEASH };
+  const dx = goal.x - a.x;
+  const dy = goal.y - a.y;
+  const d = Math.hypot(dx, dy);
+  if (d > 8) {
+    const sp = Math.min(d, def.speed * dt * (goal.slow ? 0.4 : 1));
+    a.x += dx / d * sp;
+    a.y += dy / d * sp;
+    clampInside(a, 45);
+    a.moving = 1;
+    a.walkT += dt;
+    if (Math.abs(dx) > 4) a.face = dx > 0 ? 1 : -1;
+  }
+}
+
 function updateTowers(w, dt) {
   for (const t of w.towers) {
     const def = TOWERS[t.level];
@@ -502,7 +569,7 @@ function updateTowers(w, dt) {
 
 /** 地上の敵が砦の柵にさえぎられるか（さえぎる辺を返す） */
 function blockingSide(e, nx, ny) {
-  if (e.flying || e.trickle) return null;   // 休憩中の魔物は柵を壊さず通り抜ける
+  if (e.flying) return null;
   const was = inFort(e);
   const will = nx > FORT.x1 && nx < FORT.x2 && ny > FORT.y1 && ny < FORT.y2;
   if (was || !will) return null;
@@ -516,6 +583,8 @@ function updateEnemies(w, dt) {
   const h = w.hero;
   const heroAlive = h.deadT <= 0;
   for (const e of w.enemies) {
+    e.px = e.x;
+    e.py = e.y;
     if (e.hp <= 0) continue;
     e.hurtT = Math.max(0, e.hurtT - dt);
     e.attackT = Math.max(0, e.attackT - dt);
@@ -526,33 +595,48 @@ function updateEnemies(w, dt) {
     e.kx *= Math.max(0, 1 - 10 * dt);
     e.ky *= Math.max(0, 1 - 10 * dt);
     if (e.boss && updateBoss(w, e, dt)) continue;
-    // ねらう相手: 近くの主人公 → 近くの仲間 → 砦の中心
     let target = w.core;
     let tpos = { x: CORE_POS.x, y: CORE_POS.y - 20, radius: CORE_RADIUS * 0.8 };
-    const aggro = e.ranged ? e.ranged + 60 : 230;
+    const heroOut = heroAlive && !inFort(h);
     if (e.trickle) {
-      // 休憩中の魔物は砦を攻めず、主人公に向かってくる（主人公が倒れていれば森へ帰る）
-      if (!heroAlive) { e.hp = 0; continue; }
-      target = h;
-      tpos = { x: h.x, y: h.y, radius: HERO.radius };
-    } else if (heroAlive && dist2(e, h) < aggro * aggro) { target = h; tpos = { x: h.x, y: h.y, radius: HERO.radius }; } else {
-      for (const a of w.allies) {
-        if (a.deadT > 0) continue;
-        if (dist2(e, a) < 170 * 170) { target = a; tpos = { x: a.x, y: a.y, radius: 24 }; break; }
+      // 休憩中: 柵の外をうろつき、柵の外に出てきた主人公だけを襲う（柵には傷をつけない）
+      if (heroOut && dist2(e, h) < 560 * 560) {
+        target = h;
+        tpos = { x: h.x, y: h.y, radius: HERO.radius };
+      } else {
+        e.wanderT = (e.wanderT ?? 0) - dt;
+        if (e.wanderT <= 0 || !e.wander) {
+          e.wanderT = 3 + rand(w) * 4;
+          const ang = rand(w) * Math.PI * 2;
+          const r = 620 + rand(w) * 260;
+          e.wander = { x: clamp(CORE_POS.x + Math.cos(ang) * r, BOUNDS.x1, BOUNDS.x2), y: clamp(CORE_POS.y + Math.sin(ang) * r * 1.2, BOUNDS.y1, BOUNDS.y2), radius: 0 };
+        }
+        target = null;
+        tpos = e.wander;
+      }
+    } else {
+      // ウェーブ中: 中心をめざす。すぐ近くの主人公・仲間には反撃し、サルは射程内の相手に投げる
+      const close = e.ranged ? e.ranged : e.radius + ENEMY_CLOSE;
+      if (heroAlive && dist2(e, h) < close * close) { target = h; tpos = { x: h.x, y: h.y, radius: HERO.radius }; } else {
+        for (const a of w.allies) {
+          if (a.deadT > 0) continue;
+          if (dist2(e, a) < close * close) { target = a; tpos = { x: a.x, y: a.y, radius: 24 }; break; }
+        }
       }
     }
     const dx = tpos.x - e.x;
     const dy = tpos.y - e.y;
     const d = Math.hypot(dx, dy) || 1;
-    const reach = e.ranged ? e.ranged : e.radius + tpos.radius + 6;
+    const reach = !target ? 10 : e.ranged ? e.ranged : e.radius + tpos.radius + 6;
     if (Math.abs(dx) > 3) e.face = dx > 0 ? 1 : -1;
     if (d > reach) {
       const sp = e.speed * dt;
       const nx = e.x + dx / d * sp;
       const ny = e.y + dy / d * sp;
       const side = blockingSide(e, nx, ny);
-      if (side && w.walls[side].hp > 0) {
-        // 柵を攻撃
+      if (side && (e.trickle || w.walls[side].hp > 0)) {
+        // 柵にさえぎられる。休憩中は柵の外で引き返し、ウェーブ中は柵を攻撃
+        if (e.trickle) { e.wanderT = 0; continue; }
         if (e.cd <= 0) {
           e.cd = e.baseCd;
           e.attackT = 0.2;
@@ -568,7 +652,7 @@ function updateEnemies(w, dt) {
         e.y = ny;
         e.walkT += dt;
       }
-    } else if (e.cd <= 0) {
+    } else if (target && e.cd <= 0) {
       e.cd = e.baseCd;
       e.attackT = 0.2;
       if (e.ranged) {
@@ -601,7 +685,25 @@ function updateEnemies(w, dt) {
       b.y += dy / d * push * wb;
     }
   }
+  for (const e of w.enemies) keepOutside(w, e);
   w.enemies = w.enemies.filter((e) => e.hp > 0);
+}
+
+/** 柵の外にいた地上の敵が、押し返しや重なりの処理で柵の内側に入ってしまったら外へ戻す */
+function keepOutside(w, e) {
+  if (e.flying || e.hp <= 0 || e.px == null) return;
+  const was = { x: e.px, y: e.py };
+  if (inFort(was) || !inFort(e)) return;
+  let side;
+  if (was.y <= FORT.y1) side = 'n';
+  else if (was.y >= FORT.y2) side = 's';
+  else if (was.x <= FORT.x1) side = 'w';
+  else side = 'e';
+  if (!e.trickle && w.walls[side].hp <= 0) return;   // 壊れた柵からは入れる
+  if (side === 'n') e.y = FORT.y1 - 1;
+  else if (side === 's') e.y = FORT.y2 + 1;
+  else if (side === 'w') e.x = FORT.x1 - 1;
+  else e.x = FORT.x2 + 1;
 }
 
 function damage(w, target, amount) {
@@ -756,14 +858,29 @@ function addCoins(w, n) {
 /** 台座の上に立ち止まると、コインを少しずつ払って強化する */
 function updatePads(w, input, dt) {
   const h = w.hero;
+  const was = h.onPad;
   h.onPad = null;
-  if (h.deadT > 0) return;
+  h.padWait = 0;
+  if (h.deadT > 0) { h.padCharge = 0; h.padLock = null; return; }
+  // 1段階上げたあとは、いったん台座から出るまで次を払わない
+  if (h.padLock) {
+    const lp = padById(h.padLock);
+    if (dist2(h, lp) > (PAD_TRIGGER + 25) ** 2) h.padLock = null;
+  }
   for (const p of PADS) {
-    if (dist2(h, p) > PAD_RADIUS * PAD_RADIUS) continue;
+    if (dist2(h, p) > PAD_TRIGGER * PAD_TRIGGER) continue;
     const st = padState(w.save, p);
     if (!st.visible || st.max) continue;
     h.onPad = p.id;
-    if (h.moving || w.save.coins <= 0) return;
+    if (was !== p.id || h.moving) h.padCharge = 0;
+    if (h.padLock === p.id) { h.padWait = 3; return; }
+    if (w.save.coins <= 0) return;
+    // ウェーブ中、近くに敵がいる間は払わない（戦っているうちに勝手に使われないように）
+    if (w.phase === 'wave' && w.enemies.some((e) => !e.trickle && dist2(e, h) < 300 * 300)) { h.padCharge = 0; h.padWait = 2; return; }
+    if (h.moving) return;
+    // 立ち止まってから少し待つ（輪が満ちたら支払い開始）
+    h.padCharge = Math.min(1, (h.padCharge ?? 0) + dt / PAY_DELAY);
+    if (h.padCharge < 1) { h.padWait = 1; return; }
     const rate = Math.max(PAY_MIN_RATE, st.cost / PAY_RATE);
     const pay = Math.min(w.save.coins, Math.ceil(rate * dt), st.cost - st.paid);
     if (pay <= 0) return;
@@ -774,6 +891,8 @@ function updatePads(w, input, dt) {
       w.save.levels[p.id] = st.level + 1;
       delete w.save.paid[p.id];
       rebuild(w);
+      h.padLock = p.id;
+      h.padCharge = 0;
       w.fx.push({ kind: 'build', x: p.x, y: p.y, t: 0, life: 0.6 });
       w.events.push({ type: 'build', pad: p.id, level: st.level + 1 });
     }
