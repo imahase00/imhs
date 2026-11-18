@@ -63,14 +63,34 @@ function reqP(req) {
   });
 }
 
-/** 現行セーブを読む（無ければ null） */
-export async function loadSave(gameId) {
-  const db = await openDB();
-  const tx = db.transaction(STORE, 'readonly');
-  const rec = await reqP(tx.objectStore(STORE).get(gameId));
-  await done(tx);
-  return rec ?? null;
+/** 接続を閉じる（画面を離れる前に呼ぶ。次の画面の読み込みを妨げないため） */
+export async function closeDB() {
+  const p = dbPromise;
+  dbPromise = null;
+  if (!p) return;
+  try { (await p).close(); } catch { /* 開けていなければ何もしない */ }
 }
+
+// 読み込みが応答しないとき（前の画面の書き込みが止まったままのときなど）に、待ち続けないための上限
+const READ_TIMEOUT = 3000;
+
+/** 現行セーブを読む（無ければ null）。timeoutMs を過ぎたら失敗として返す */
+export async function loadSave(gameId, timeoutMs = 0) {
+  const work = (async () => {
+    const db = await openDB();
+    const tx = db.transaction(STORE, 'readonly');
+    const rec = await reqP(tx.objectStore(STORE).get(gameId));
+    await done(tx);
+    return rec ?? null;
+  })();
+  if (!timeoutMs) return work;
+  let timer;
+  const limit = new Promise((_, reject) => {
+    timer = setTimeout(() => { dbPromise = null; reject(new Error('保存領域の応答がありません')); }, timeoutMs);
+  });
+  try { return await Promise.race([work, limit]); } finally { clearTimeout(timer); }
+}
+export { READ_TIMEOUT };
 
 /** 直前の正常セーブを読む（無ければ null） */
 export async function loadPrevSave(gameId) {

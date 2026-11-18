@@ -6,7 +6,7 @@ import * as S from './sim.js';
 import { upgrade, validate } from './save-schema.js';
 import { loadImages, makeCamera, follow, draw } from './render.js';
 import { audio } from './audio.js';
-import { loadSave, loadPrevSave, writeSave, holdGameLock, ConflictError } from '../../shared/storage.js';
+import { loadSave, loadPrevSave, writeSave, holdGameLock, closeDB, ConflictError } from '../../shared/storage.js';
 import { getAudioSettings, setAudioSettings } from '../../shared/settings.js';
 import { initServiceWorker } from '../../shared/sw-client.js';
 
@@ -40,16 +40,21 @@ let saving = false;
 let dirty = false;
 let lastSaveAt = 0;
 let changed = false;   // まだ保存していない変化（コインなど）
+let leaving = false;   // ランチャーへ移る途中（これ以降は書き込みを始めない）
+let lastJson = '';     // 最後に保存した内容（同じなら書き込まない）
 async function persist() {
   dirty = true;
-  if (saving || blocked || !world) return;
+  if (saving || blocked || !world || leaving) return;
   saving = true;
   while (dirty && !blocked) {
     dirty = false;
     const snap = structuredClone(S.syncSave(world));
+    const json = JSON.stringify(snap);
+    if (json === lastJson) continue;
     try {
       rev = await writeSave(GAME_ID, { schema: SCHEMA, data: snap, summary: S.saveSummary(snap) }, rev);
       lastSaveAt = performance.now();
+      lastJson = json;
       $('save-banner').hidden = true;
     } catch (e) {
       if (e instanceof ConflictError) {
@@ -345,6 +350,10 @@ async function leaveToLauncher() {
   persist();
   const until = performance.now() + 1500;
   while ((saving || dirty) && !blocked && performance.now() < until) await new Promise((r) => setTimeout(r, 50));
+  // 画面を離れる瞬間に新しい書き込みを始めると、iPhone ではその書き込みが前の画面ごと止まったままになり、
+  // ランチャーがセーブを読めなくなる。ここで書き込みを締め切り、接続も閉じてから移る。
+  leaving = true;
+  await closeDB();
   location.href = '../../index.html';
 }
 
@@ -555,10 +564,11 @@ async function waitLock() {
 }
 
 document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState === 'hidden' && world) { S.syncSave(world); persist(); }
+  if (document.visibilityState === 'hidden' && world) persist();   // 変化が無ければ書き込まない
   last = performance.now();
 });
-window.addEventListener('pagehide', () => { if (world) { S.syncSave(world); persist(); } });
+// 戻るボタン等で bfcache から戻ったとき、書き込みを再開できるようにする
+window.addEventListener('pageshow', (e) => { if (e.persisted) leaving = false; });
 
 async function boot() {
   resize();

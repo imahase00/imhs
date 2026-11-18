@@ -1,7 +1,7 @@
 // IMHS ランチャー
 import { getTheme, setTheme, applyTheme, THEMES, THEME_LABELS } from './shared/settings.js';
 import {
-  loadSave, writeSave, withGameLock, makeBackup, downloadJSON, readFileText,
+  loadSave, READ_TIMEOUT, writeSave, withGameLock, makeBackup, downloadJSON, readFileText,
 } from './shared/storage.js';
 import { initServiceWorker, repair } from './shared/sw-client.js';
 
@@ -29,9 +29,10 @@ async function renderGames() {
   const box = $('games');
   const cards = [];
   let failed = false;
-  for (const g of games) {
-    let rec = null;
-    try { rec = await loadSave(g.id); } catch { failed = true; /* 保存領域が使えない・応答しない */ }
+  // 全ゲームのセーブを同時に読み、応答しないものは見切る（1本が止まっても一覧は出す）
+  const recs = await Promise.all(games.map((g) => loadSave(g.id, READ_TIMEOUT).catch(() => { failed = true; return null; })));
+  for (const [i, g] of games.entries()) {
+    const rec = recs[i];
     const label = rec?.summary?.label;
     const detail = h('div', { class: 'details', hidden: true }, ...(g.description || []).map((t) => h('p', { text: t })));
     const detailBtn = h('button', {
