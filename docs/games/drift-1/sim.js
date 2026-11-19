@@ -707,7 +707,7 @@ function findJob(w, bot) {
       if (cur > full / 2) continue;
       const st = nearestStore(w, b.x, b.y);
       if (!st) continue;
-      const score = dist(st) + Math.hypot(st.x - b.x, st.y - b.y);
+      const score = dist(st) + Math.hypot(st.x - b.x, st.y - b.y) - 600;
       if (!best || score < best.score) best = { score, job: { from: st.id, fromPool: true, to: b.id, item, n: Math.min(cap, r, inPool) } };
     }
   }
@@ -732,12 +732,116 @@ function findJob(w, bot) {
       if (!to) continue;
       const k = Math.min(cap, free, room(w, to, item));
       if (k <= 0) continue;
-      const score = dist(b) + Math.hypot(to.x - b.x, to.y - b.y) - free * 40;
+      // 機械が使う物を届ける仕事と、いっぱいで止まった機械を空ける仕事を先にする（倉庫へしまうだけの仕事に負けないように）
+      const toMachine = machineOf(to.type).role !== 'store';
+      const full = total(b.out) >= OUTPUT_CAP;
+      const score = dist(b) + Math.hypot(to.x - b.x, to.y - b.y) - free * 40 - (toMachine ? 900 : 0) - (full ? 900 : 0);
       if (!best || score < best.score) best = { score, job: { from: b.id, to: to.id, item, n: k } };
     }
   }
   return best?.job ?? null;
 }
+// ---- 歩くロボの道さがし（50ごとの細かいマスで幅優先。見通せる所は直線でつなぐ）----
+const NAV = 50;
+const NAV_N = WORLD.w / NAV;
+function navGrid(w) {
+  const key = `${w.save.buildings.length}|${Object.keys(w.save.gates).length}`;
+  if (w.nav?.key === key) return w.nav.grid;
+  const grid = new Uint8Array(NAV_N * NAV_N);
+  const sol = solids(w);
+  for (let j = 0; j < NAV_N; j++) {
+    for (let i = 0; i < NAV_N; i++) {
+      const x = i * NAV + NAV / 2;
+      const y = j * NAV + NAV / 2;
+      let bad = !walkable(w.save, x, y) || !reachable(w, x, y);
+      if (!bad) for (const o of sol) if (Math.hypot(x - o.x, (y - o.y) * 1.3) < o.r + 6) { bad = true; break; }
+      grid[j * NAV_N + i] = bad ? 1 : 0;
+    }
+  }
+  w.nav = { key, grid };
+  return grid;
+}
+function navFree(grid, x, y) {
+  const i = Math.floor(x / NAV);
+  const j = Math.floor(y / NAV);
+  return i >= 0 && j >= 0 && i < NAV_N && j < NAV_N && grid[j * NAV_N + i] === 0;
+}
+function lineClear(w, grid, ax, ay, bx, by) {
+  const d = Math.hypot(bx - ax, by - ay);
+  const n = Math.ceil(d / 8);
+  for (let k = 1; k < n; k++) {
+    const x = ax + (bx - ax) * k / n;
+    const y = ay + (by - ay) * k / n;
+    if (!navFree(grid, x, y)) return false;
+    // 地面の縁をかすめないよう、少し余白をとる
+    for (const [ox, oy] of [[14, 0], [-14, 0], [0, 14], [0, -14]]) if (!walkable(w.save, x + ox, y + oy)) return false;
+  }
+  return true;
+}
+/** (sx,sy) から (tx,ty) のそば（建物の手前）までの道。行けなければ null */
+export function findPath(w, sx, sy, tx, ty) {
+  const grid = navGrid(w);
+  const cellOf = (x, y) => Math.max(0, Math.min(NAV_N - 1, Math.floor(y / NAV))) * NAV_N + Math.max(0, Math.min(NAV_N - 1, Math.floor(x / NAV)));
+  // 出発点が建物などに重なっていたら、近くの空いたマスから
+  let start = cellOf(sx, sy);
+  if (grid[start]) {
+    let best = -1;
+    let bd = Infinity;
+    const si = start % NAV_N;
+    const sj = (start / NAV_N) | 0;
+    for (let dj = -3; dj <= 3; dj++) for (let di = -3; di <= 3; di++) {
+      const i = si + di;
+      const j = sj + dj;
+      if (i < 0 || j < 0 || i >= NAV_N || j >= NAV_N || grid[j * NAV_N + i]) continue;
+      const d = di * di + dj * dj;
+      if (d < bd) { bd = d; best = j * NAV_N + i; }
+    }
+    if (best < 0) return null;
+    start = best;
+  }
+  const prev = new Int32Array(NAV_N * NAV_N).fill(-1);
+  prev[start] = start;
+  const q = [start];
+  let goal = -1;
+  for (let qi = 0; qi < q.length; qi++) {
+    const c = q[qi];
+    const ci = c % NAV_N;
+    const cj = (c / NAV_N) | 0;
+    if (Math.hypot(ci * NAV + NAV / 2 - tx, cj * NAV + NAV / 2 - ty) < 110) { goal = c; break; }
+    for (const [di, dj] of [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1]]) {
+      const ni = ci + di;
+      const nj = cj + dj;
+      if (ni < 0 || nj < 0 || ni >= NAV_N || nj >= NAV_N) continue;
+      const n = nj * NAV_N + ni;
+      if (prev[n] !== -1 || grid[n]) continue;
+      if (di && dj && (grid[cj * NAV_N + ni] || grid[nj * NAV_N + ci])) continue;
+      prev[n] = c;
+      q.push(n);
+    }
+  }
+  if (goal < 0) return null;
+  const cells = [];
+  for (let c = goal; c !== start; c = prev[c]) cells.push({ x: (c % NAV_N) * NAV + NAV / 2, y: ((c / NAV_N) | 0) * NAV + NAV / 2 });
+  cells.reverse();
+  cells.push({ x: tx, y: ty });
+  // 見通せる所は飛ばして、なめらかに
+  const out = [];
+  let cx = sx;
+  let cy = sy;
+  let k = 0;
+  while (k < cells.length) {
+    let far = k;
+    for (let m = cells.length - 1; m > k; m--) {
+      if (lineClear(w, grid, cx, cy, cells[m].x, cells[m].y)) { far = m; break; }
+    }
+    out.push(cells[far]);
+    cx = cells[far].x;
+    cy = cells[far].y;
+    k = far + 1;
+  }
+  return out;
+}
+
 function runBots(w, dt) {
   const s = w.save;
   syncBots(w);
@@ -753,10 +857,25 @@ function runBots(w, dt) {
     const j = bot.job;
     const target = buildingById(w, j.carrying ? j.to : j.from);
     if (!target) { dropJob(w, bot); continue; }
-    const dx = target.x - bot.x;
-    const dy = target.y + 40 - bot.y;
-    const d = Math.hypot(dx, dy);
-    if (d > 60) {
+    const gx = target.x;
+    const gy = target.y + 40;
+    if (Math.hypot(gx - bot.x, gy - bot.y) > 60) {
+      // 空を飛ぶドローンはまっすぐ。歩くロボは、水・崖・建物を避けた道をたどる
+      let wx = gx;
+      let wy = gy;
+      if (!def.fly) {
+        const key = `${target.id}|${j.carrying ? 1 : 0}`;
+        if (bot.pathKey !== key || !bot.path) {
+          bot.pathKey = key;
+          bot.path = findPath(w, bot.x, bot.y, gx, gy);
+          if (!bot.path) { dropJob(w, bot); bot.wait = 3; continue; }
+        }
+        while (bot.path.length && Math.hypot(bot.path[0].x - bot.x, bot.path[0].y - bot.y) < 20) bot.path.shift();
+        if (bot.path.length) { wx = bot.path[0].x; wy = bot.path[0].y; }
+      }
+      const dx = wx - bot.x;
+      const dy = wy - bot.y;
+      const d = Math.hypot(dx, dy) || 1;
       const sp = def.speed * dt;
       bot.x += dx / d * Math.min(sp, d);
       bot.y += dy / d * Math.min(sp, d);
@@ -764,6 +883,7 @@ function runBots(w, dt) {
       if (Math.abs(dx) > 4) bot.face = dx > 0 ? 1 : -1;
       continue;
     }
+    bot.path = null;
     if (!j.carrying) {
       const src = j.fromPool ? s.pool : target.out;
       const k = Math.min(j.n, src?.[j.item] ?? 0);

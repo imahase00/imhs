@@ -228,3 +228,32 @@ test('自動プレイで作った途中のセーブは正しく読め、壊れ�
   assert.equal(upgrade(bad2, 1).ok, false, '知らない物');
   assert.equal(upgrade(S.newSave(1), 99).ok, false, '新しすぎる版');
 });
+
+test('運搬ロボは水・崖・霧の地域を通らず、道を探して歩く（ドローンだけは飛ぶ）', () => {
+  const { s, w } = fresh();
+  for (const g of GATES.slice(0, 3)) s.gates[g.id] = true;
+  w.reach = S.computeReach(s);
+  s.era = 3;
+  give(s, { stone: 99, wood: 99, plank: 99, 'iron-plate': 99, 'copper-plate': 99, gear: 9, pipe: 9 });
+  for (const b of BROKEN_BOTS.slice(0, 4)) assert.equal(S.repairBot(w, b.id), true);
+  // 西の岩山に手回し採掘機、浜辺の倉庫まで運ばせる（川と森の縁を回り込む必要がある）
+  const iron = NODES.find((n) => n.kind === 'iron' && n.x < 1000);
+  const d = S.place(w, 'handdrill', iron.x, iron.y).building;
+  d.out = { 'iron-ore': 12 };
+  let bad = 0;
+  let moved = 0;
+  for (let t = 0; t < 240; t += 0.1) {
+    S.step(w, { x: 0, y: 0 }, 0.1);
+    for (const bot of w.bots) {
+      if (!S.walkable(s, bot.x, bot.y) || !S.reachable(w, bot.x, bot.y)) bad++;
+      if (bot.job) moved++;
+    }
+  }
+  assert.equal(bad, 0, '歩けない所に入った回数');
+  assert.ok(moved > 0);
+  assert.ok((s.pool['iron-ore'] ?? 0) >= 4, `倉庫の鉄鉱石 ${s.pool['iron-ore']}`);
+  // 島の外れでも道が見つかる
+  const p = S.findPath(w, 2750, 5150, iron.x, iron.y + 40);
+  assert.ok(p && p.length >= 2);
+  assert.equal(S.findPath(w, 2750, 5150, 3000, 900), null, '山頂へはリフトを架けるまで行けない');
+});

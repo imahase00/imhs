@@ -113,7 +113,7 @@ function run(seed) {
   };
   const nearestStore = () => s.buildings.filter((b) => S.machineOf(b.type).role === 'store')
     .sort((a, b) => Math.hypot(a.x - w.hero.x, a.y - w.hero.y) - Math.hypot(b.x - w.hero.x, b.y - w.hero.y))[0];
-  const visit = (b) => { goTo(b.x, b.y + S.machineOf(b.type).radius + 60, 60); wait(0.5); };
+  const visit = (b) => { goTo(b.x, b.y + S.machineOf(b.type).radius + 50, 25); wait(0.5); };
   const deposit = () => { if (S.bagCount(s) > 0) visit(nearestStore()); };
 
   // ---- 手で採る ----
@@ -361,6 +361,13 @@ function run(seed) {
     }
   } catch (e) {
     if (!(e instanceof Stuck)) throw e;
+    if (LOG) {
+      for (const b of s.buildings.filter((x) => ['loom', 'bigassembler'].includes(x.type))) console.log('  機械', b.type, b.id, b.x, b.y, b.recipe, JSON.stringify(b.inp), JSON.stringify(b.out), S.isPowered(w, b));
+      for (const bot of w.bots) console.log('  ロボ', bot.type, Math.round(bot.x), Math.round(bot.y), JSON.stringify(bot.job), bot.path?.length);
+      const loom = s.buildings.find((x) => x.type === 'loom');
+      const st = s.buildings.filter((x) => S.machineOf(x.type).role === 'store');
+      for (const x of st) console.log('  道', x.id, x.x, x.y, '→ 紡織機', !!S.findPath(w, x.x, x.y + 40, loom.x, loom.y + 40));
+    }
     return { ok: false, t: w.t, why: e.message, quest: QUESTS[s.quest]?.id, marks };
   }
   return { ok: true, t: w.t, marks, built: s.buildings.length, gathered: s.stats.gathered };
