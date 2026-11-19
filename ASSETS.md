@@ -75,3 +75,24 @@
 | 森のとりで防衛アイテムスプライト集.png | 1536×1024 | 83e65f396f | 一覧表: 設備と小物 | forest-fort / `tower-1・tower-2・tower-3・campfire・coin・pad・berry・arrows` | `games/forest-fort/img/sprites/*.webp` |
 | 森に囲まれた四方向の草原.png | 1024×1536 | 7b006ea254 | マップ: 森の空き地（四方に小道） | forest-fort / `map` | `games/forest-fort/img/map.webp` |
 | 夕暮れの森の五人の守り手.png | 1024×1536 | c15854b1b0 | 表紙（ランチャーのゲームカード） | forest-fort / `cover` | `games/forest-fort/img/cover.webp` |
+| 霧の島の若き発明家アクション集.png | 1536×1024 | eea9012e06 | 一覧表: 主人公（8ポーズ） | drift-1 / `hero・hero-walk・hero-carry・hero-pick・hero-axe・hero-fix・hero-plan・hero-joy` | `games/drift-1/img/sprites/*.webp` |
+| スチームパンク島の仲間たち八体.png | 1536×1024 | 73121cbb20 | 一覧表: ロボットと島の生き物 | drift-1 / `bot-broken・bot-carry・bot-miner・bot-drone・keeper・crab・gull・lizard` | `games/drift-1/img/sprites/*.webp` |
+| 霧の島の資源と機械部品.png | 1254×1254 | 6262134e9f | 一覧表: 資源と部品（16種） | drift-1 / `wood・stone・copper-ore・iron-ore・coal・cotton・plank・copper-plate・iron-plate・gear・pipe・cloth・engine・frame・envelope・propeller` | `games/drift-1/img/sprites/*.webp` |
+| 霧の島 8種資源スプライト.png | 1536×1024 | 63704569f0 | 一覧表: 島の資源と障害物 | drift-1 / `n-tree・n-rock・n-copper・n-iron・n-coal・n-cotton・n-crate・n-log` | `games/drift-1/img/sprites/*.webp` |
+| 霧の島の蒸気機械八種.png | 1536×1024 | 6f95e7acc9 | 一覧表: 機械（はじめの時代） | drift-1 / `m-bench・m-store・m-handdrill・m-boiler・m-drill・m-saw・m-furnace・m-lift` | `games/drift-1/img/sprites/*.webp` |
+| 霧の島・進化した蒸気工場機械.png | 1536×1024 | 4a7a3446a5 | 一覧表: 機械（工場の時代） | drift-1 / `m-roller・m-assembler・m-loom・m-bigdrill・m-bigassembler・m-warehouse・m-station・m-console` | `games/drift-1/img/sprites/*.webp` |
+| 霧の島の蒸気遺構八景.png | 1536×1024 | bdd80d646c | 一覧表: 島の大きな建物と残骸 | drift-1 / `wreck・lab・bridge-broken・bridge・reactor-off・reactor-on・dock・ship-frame` | `games/drift-1/img/sprites/*.webp` |
+| 霧の島・六つの地形テクスチャ.png | 1536×1024 | 7f4af57348 | 地面の模様（6種） | drift-1 / `grass・sand・dirt・rock・tiles・sea` | `games/drift-1/img/ground/*.webp` |
+| 嵐雲渦巻く夜の海.png | 1536×1024 | 38ce8f3c17 | 演出: 嵐の空 | drift-1 / `s-storm` | `games/drift-1/img/scene/storm.webp` |
+| 煙を引く旧式飛行船.png | 1536×1024 | c3fc31f4f9 | 演出: 嵐の中の古い飛行船（透過） | drift-1 / `s-oldship` | `games/drift-1/img/scene/oldship.webp` |
+| 霧に包まれた孤島.png | 1536×1024 | 9456208f16 | 演出: 霧の島を見下ろす | drift-1 / `s-island` | `games/drift-1/img/scene/island.webp` |
+| 霧の島の浜辺、目覚めの瞬間.png | 1024×1536 | 3ac9f0b9c7 | 演出: 浜辺で目を覚ます | drift-1 / `s-beach` | `games/drift-1/img/scene/beach.webp` |
+| 森の奥の廃研究所.png | 1024×1536 | c887e2becf | 出来事: 研究所の発見 | drift-1 / `s-lab` | `games/drift-1/img/scene/lab.webp` |
+| 発明家とロボット、地熱炉再起動.png | 1024×1536 | d088ff4771 | 出来事: 地熱炉の再起動 | drift-1 / `s-reactor` | `games/drift-1/img/scene/reactor.webp` |
+| 黄金の夜明け、旅立ちの空.png | 1024×1536 | d41b3d16f2 | 演出: 夜明けの空 | drift-1 / `s-dawn` | `games/drift-1/img/scene/dawn.webp` |
+| 船底から見上げる真鍮飛行船.png | 1024×1536 | 366599cf05 | 演出: 飛行船を見上げる（透過） | drift-1 / `s-shipup` | `games/drift-1/img/scene/shipup.webp` |
+| 着陸台で空を見上げる三人.png | 1536×1024 | 471d3350ac | 演出: 地面と後ろ姿（透過） | drift-1 / `s-crew` | `games/drift-1/img/scene/crew.webp` |
+| 雲海に浮かぶ霧の島.png | 1536×1024 | aeb174bd59 | 演出: 雲海と遠ざかる島 | drift-1 / `s-sea` | `games/drift-1/img/scene/cloudsea.webp` |
+| 横顔の蒸気飛行船.png | 1536×1024 | 5a706f04e9 | 演出: 飛び立つ飛行船（透過） | drift-1 / `s-ship` | `games/drift-1/img/scene/ship.webp` |
+| 朝空に立ちはだかる嵐雲.png | 1536×1024 | 34022515da | 演出: 行く手の巨大な嵐 | drift-1 / `s-nextstorm` | `games/drift-1/img/scene/nextstorm.webp` |
+| 夕映えの山頂、発明家と飛行船.png | 1024×1536 | 8e82d720f6 | 表紙（ランチャーのゲームカード） | drift-1 / `cover` | `games/drift-1/img/cover.webp` |

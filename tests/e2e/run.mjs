@@ -430,7 +430,7 @@ async function hgSleep(p) {
 await step('ひだまり菜園: ランチャーに2本目として並び、通常の入口から起動（iPhone 16 幅）', async () => {
   await page.goto(URL0, { waitUntil: 'networkidle0' });
   const titles = await page.$$eval('.cover-title b', (b) => b.map((x) => x.textContent));
-  assert.deepEqual(titles, ['マージの旅', 'ひだまり菜園', '森のとりで']);
+  assert.deepEqual(titles, ['マージの旅', 'ひだまり菜園', '森のとりで', '漂流発明記 ― 霧の島 ―']);
   // スマホ幅は横スライド: 縦スクロールなしで1枚ずつ、点で切り替え
   const lay = await page.evaluate(() => ({ sw: document.documentElement.scrollWidth, vw: innerWidth, overflow: getComputedStyle(document.querySelector('#games')).overflowX }));
   assert.equal(lay.overflow, 'auto');
@@ -632,9 +632,128 @@ await step('森のとりで: ウェーブ開始 → 途中で再読み込みし�
   await Promise.all([page.waitForNavigation({ waitUntil: 'networkidle0' }), page.tap('#btn-back')]);
   assert.equal(await page.$eval('[data-play="forest-fort"]', (a) => a.textContent.trim()), 'つづきから');
   // ゲーム一覧（3本）が出ている
-  assert.equal(await page.$$eval('#games .card', (c) => c.length), 3);
+  assert.equal(await page.$$eval('#games .card', (c) => c.length), 4);
   // 戻った直後に「確認中…」のまま止まらない
   await page.waitForFunction(() => !/確認中/.test(document.querySelector('#offline-text').textContent), { timeout: 3000 });
+});
+
+// ---- 漂流発明記 ----
+const drState = (p) => p.evaluate(() => window.__drift && { save: window.__drift.save, hero: window.__drift.hero, quest: window.__drift.quest, mode: window.__drift.mode });
+async function drSkip(p) {
+  for (let k = 0; k < 12; k++) {
+    if (await p.$eval('#talk', (el) => el.hidden)) return;
+    await p.tap('#talk-skip');
+    await sleep(150);
+  }
+}
+async function drWalkTo(p, x, y, near = 40) {
+  for (let k = 0; k < 120; k++) {
+    await drSkip(p);   // 目標を果たすと会話が開いて止まるので閉じる
+    const h = (await drState(p)).hero;
+    const dx = x - h.x;
+    const dy = y - h.y;
+    if (Math.hypot(dx, dy) < near) return;
+    const keys = [];
+    if (Math.abs(dx) > 20) keys.push(dx > 0 ? 'd' : 'a');
+    if (Math.abs(dy) > 20) keys.push(dy > 0 ? 's' : 'w');
+    for (const k2 of keys) await p.keyboard.down(k2);
+    await sleep(Math.min(300, Math.max(40, Math.hypot(dx, dy) / 300 * 1000 * 0.6)));
+    for (const k2 of keys) await p.keyboard.up(k2);
+  }
+  const h = (await drState(p)).hero;
+  throw new Error(`目的地に着けません（いま ${Math.round(h.x)},${Math.round(h.y)} → ${x},${y}）`);
+}
+
+await step('漂流発明記: ランチャーの4本目から新しく始める → タイトル → 残骸を調べる → 手で木を採る → 再読み込みで続きから', async () => {
+  await page.goto(URL0, { waitUntil: 'networkidle0' });
+  await page.tap('#pager button:nth-child(4)');
+  await page.waitForFunction(() => {
+    const r = document.querySelector('[data-play="drift-1"]').getBoundingClientRect();
+    return r.left >= 0 && r.right <= innerWidth;
+  }, { timeout: 3000 });
+  assert.equal(await page.$eval('[data-play="drift-1"]', (a) => a.textContent.trim()), '遊ぶ');
+  await Promise.all([page.waitForNavigation({ waitUntil: 'networkidle0' }), page.tap('[data-play="drift-1"]')]);
+  await page.waitForFunction(() => window.__drift, { timeout: 15000 });
+  await page.waitForSelector('#title:not([hidden])');
+  await page.tap('#title .btn.ghost');   // オープニングをとばす
+  await drSkip(page);
+  const D = await import('../../docs/games/drift-1/data.js');
+  await drWalkTo(page, D.LANDMARKS.wreck.x + 250, D.LANDMARKS.wreck.y + 200, 60);
+  await page.waitForFunction(() => window.__drift.quest >= 1, { timeout: 5000 });
+  await drSkip(page);
+  const tree = D.NODES.find((n) => n.kind === 'tree' && n.y > 5200 && n.x < 2500);
+  await drWalkTo(page, tree.x, tree.y + 90, 40);
+  await page.waitForFunction(() => (window.__drift.save.bag.wood ?? 0) >= 2, { timeout: 8000 });
+  await page.screenshot({ path: join(OUT, 'e2e-drift-gather.png') });
+  await page.waitForFunction(() => !window.__drift.saving(), { timeout: 8000 });
+  await sleep(4500);   // 間引いた保存が書き込まれるまで
+  await page.waitForFunction(() => !window.__drift.saving(), { timeout: 8000 });
+  await page.reload({ waitUntil: 'networkidle0' });
+  await page.waitForFunction(() => window.__drift, { timeout: 15000 });
+  assert.equal(await page.$eval('#title', (e) => e.hidden), true, '続きからはタイトルを出さない');
+  const st = await drState(page);
+  assert.ok(st.quest >= 1);
+  assert.ok((st.save.bag.wood ?? 0) + (st.save.pool.wood ?? 0) >= 1);
+});
+
+await step('漂流発明記: 工場の時代のバックアップを復元 → 倉庫をタップ → 「建てる」から倉庫を置く → ランチャーへ戻ると4本並ぶ', async () => {
+  const d = JSON.parse(readFileSync(join(ROOT, 'tests/fixtures/drift-parts.json'), 'utf8'));
+  d.seen = [...new Set(['opening', ...d.seen, ...d.pending])];
+  d.pending = [];
+  d.pool.plank = 30;
+  const DV = await import('../../docs/games/drift-1/save-schema.js');
+  assert.deepEqual(DV.validate(d), []);
+  const file = join(OUT, 'drift-parts.json');
+  writeFileSync(file, JSON.stringify({ format: 'imhs-backup', gameId: 'drift-1', schema: 1, exportedAt: new Date().toISOString(), data: d }));
+  await page.goto(URL0, { waitUntil: 'networkidle0' });
+  await page.tap('#btn-settings');
+  await page.waitForSelector('.backup .btn');
+  const idx = await page.$$eval('.backup', (rows) => rows.findIndex((r) => /漂流発明記/.test(r.textContent)));
+  assert.ok(idx >= 0);
+  await page.evaluate((k) => document.querySelectorAll('.backup')[k].querySelectorAll('.btn')[1].click(), idx);
+  await (await page.$('#file')).uploadFile(file);
+  await page.waitForSelector('#confirm:not([hidden])');
+  assert.match(await page.$eval('#confirm', (e) => e.textContent), /工場の時代/);
+  await page.$$eval('#confirm-actions .btn', (b) => b[1].click());
+  await page.waitForFunction(() => /復元しました/.test(document.querySelector('#toast').textContent));
+  await page.click('#btn-close');
+  await page.tap('#pager button:nth-child(4)');
+  await sleep(600);
+  await Promise.all([page.waitForNavigation({ waitUntil: 'networkidle0' }), page.tap('[data-play="drift-1"]')]);
+  await page.waitForFunction(() => window.__drift, { timeout: 15000 });
+  await sleep(500);
+  const before = (await drState(page)).save.buildings.length;
+  // 画面に映っている倉庫をタップ
+  const pt = await page.evaluate(() => {
+    const dd = window.__drift;
+    const b = dd.save.buildings.filter((x) => x.type === 'store').map((x) => dd.toScreen(x.x, x.y - 40)).find((q) => q.x > 20 && q.x < innerWidth - 20 && q.y > 200 && q.y < innerHeight - 200);
+    return b ?? null;
+  });
+  assert.ok(pt, '倉庫が画面に映っている');
+  await page.touchscreen.tap(pt.x, pt.y);
+  await page.waitForSelector('#card:not([hidden])');
+  assert.match(await page.$eval('#card', (e) => e.textContent), /倉庫/);
+  await page.tap('#card .x');
+  await page.tap('#btn-build');
+  await page.waitForSelector('#sheet:not([hidden])');
+  await page.tap('#sheet .mitem');   // 一覧の最初は倉庫
+  await page.waitForSelector('#modebar:not([hidden])');
+  // 置ける場所を探して何度かタップ
+  let ok = false;
+  for (const [fx, fy] of [[0.5, 0.35], [0.3, 0.3], [0.7, 0.3], [0.5, 0.25], [0.3, 0.45], [0.7, 0.45]]) {
+    const vp = page.viewport();
+    await page.touchscreen.tap(vp.width * fx, vp.height * fy);
+    await sleep(200);
+    if (!(await page.$eval('#modebar .btn.gold', (b) => b.disabled))) { ok = true; break; }
+  }
+  assert.ok(ok, '置ける場所が見つかる');
+  await page.tap('#modebar .btn.gold');
+  await page.waitForFunction((n) => window.__drift.save.buildings.length === n + 1, { timeout: 3000 }, before);
+  await page.screenshot({ path: join(OUT, 'e2e-drift-build.png') });
+  await page.waitForFunction(() => !window.__drift.saving(), { timeout: 8000 });
+  await Promise.all([page.waitForNavigation({ waitUntil: 'networkidle0' }), page.tap('#btn-back')]);
+  assert.equal(await page.$$eval('#games .card', (c) => c.length), 4);
+  assert.equal(await page.$eval('[data-play="drift-1"]', (a) => a.textContent.trim()), 'つづきから');
 });
 
 await browser.close();
