@@ -430,7 +430,7 @@ async function hgSleep(p) {
 await step('ひだまり菜園: ランチャーに2本目として並び、通常の入口から起動（iPhone 16 幅）', async () => {
   await page.goto(URL0, { waitUntil: 'networkidle0' });
   const titles = await page.$$eval('.cover-title b', (b) => b.map((x) => x.textContent));
-  assert.deepEqual(titles, ['マージの旅', 'ひだまり菜園', '森のとりで', '漂流発明記 ― 霧の島 ―']);
+  assert.deepEqual(titles, ['マージの旅', 'ひだまり菜園', '森のとりで', '漂流発明記 ― 霧の島 ―', 'にげろ！とうふ']);
   // スマホ幅は横スライド: 縦スクロールなしで1枚ずつ、点で切り替え
   const lay = await page.evaluate(() => ({ sw: document.documentElement.scrollWidth, vw: innerWidth, overflow: getComputedStyle(document.querySelector('#games')).overflowX }));
   assert.equal(lay.overflow, 'auto');
@@ -632,7 +632,7 @@ await step('森のとりで: ウェーブ開始 → 途中で再読み込みし�
   await Promise.all([page.waitForNavigation({ waitUntil: 'networkidle0' }), page.tap('#btn-back')]);
   assert.equal(await page.$eval('[data-play="forest-fort"]', (a) => a.textContent.trim()), 'つづきから');
   // ゲーム一覧（3本）が出ている
-  assert.equal(await page.$$eval('#games .card', (c) => c.length), 4);
+  assert.equal(await page.$$eval('#games .card', (c) => c.length), 5);
   // 戻った直後に「確認中…」のまま止まらない
   await page.waitForFunction(() => !/確認中/.test(document.querySelector('#offline-text').textContent), { timeout: 3000 });
 });
@@ -696,7 +696,7 @@ await step('漂流発明記: ランチャーの4本目から新しく始める �
   assert.ok((st.save.bag.wood ?? 0) + (st.save.pool.wood ?? 0) >= 1);
 });
 
-await step('漂流発明記: 工場の時代のバックアップを復元 → 倉庫をタップ → 「建てる」から倉庫を置く → ランチャーへ戻ると4本並ぶ', async () => {
+await step('漂流発明記: 工場の時代のバックアップを復元 → 倉庫をタップ → 「建てる」から倉庫を置く → ランチャーへ戻ると5本並ぶ', async () => {
   const d = JSON.parse(readFileSync(join(ROOT, 'tests/fixtures/drift-parts.json'), 'utf8'));
   d.seen = [...new Set(['opening', ...d.seen, ...d.pending])];
   d.pending = [];
@@ -752,7 +752,7 @@ await step('漂流発明記: 工場の時代のバックアップを復元 → �
   await page.screenshot({ path: join(OUT, 'e2e-drift-build.png') });
   await page.waitForFunction(() => !window.__drift.saving(), { timeout: 8000 });
   await Promise.all([page.waitForNavigation({ waitUntil: 'networkidle0' }), page.tap('#btn-back')]);
-  assert.equal(await page.$$eval('#games .card', (c) => c.length), 4);
+  assert.equal(await page.$$eval('#games .card', (c) => c.length), 5);
   assert.equal(await page.$eval('[data-play="drift-1"]', (a) => a.textContent.trim()), 'つづきから');
 });
 
@@ -766,11 +766,12 @@ await step('ランチャー: 一覧表示（アイコン＋題名）に切り替
     sw: document.documentElement.scrollWidth, vw: innerWidth,
     tops: [...document.querySelectorAll('#grid .app')].map((a) => Math.round(a.getBoundingClientRect().top)),
   }));
-  assert.equal(g.titles.length, 4);
+  assert.equal(g.titles.length, 5);
   assert.equal(g.cardsShown, false);
   assert.equal(g.pagerShown, false);
   assert.ok(g.sw <= g.vw, '横にはみ出さない');
-  assert.equal(new Set(g.tops).size, 1, 'スマホ幅で4つが1行に並ぶ');
+  assert.equal(new Set(g.tops.slice(0, 4)).size, 1, 'スマホ幅で4つが1行に並ぶ');
+  assert.ok(g.tops[4] > g.tops[0], '5本目は次の行');
   await page.waitForFunction(() => [...document.querySelectorAll('#grid img')].every((i) => i.complete && i.naturalWidth > 0), { timeout: 5000 });
   await page.screenshot({ path: join(OUT, 'e2e-launcher-grid.png') });
   await page.reload({ waitUntil: 'networkidle0' });
@@ -780,6 +781,45 @@ await step('ランチャー: 一覧表示（アイコン＋題名）に切り替
   await page.goBack({ waitUntil: 'networkidle0' });
   await page.tap('#views [data-view="cards"]');
   await page.waitForFunction(() => document.querySelector('#pager button:nth-child(3)')?.getAttribute('aria-current') === 'true', { timeout: 3000 });
+});
+
+await step('にげろ！とうふ: 一覧の5本目から起動 → 導入 → スワイプでよける・跳ぶ → 崩れて結果 → 記録が残る', async () => {
+  await page.goto(URL0, { waitUntil: 'networkidle0' });
+  await page.tap('#views [data-view="grid"]');
+  await Promise.all([page.waitForNavigation({ waitUntil: 'networkidle0' }), page.tap('#grid [data-play="tofu-run"]')]);
+  await page.waitForFunction(() => window.__tofu?.scene === 'title');
+  await page.tap('#btn-run');
+  for (let i = 0; i < 3; i++) { await page.waitForSelector('#intro:not([hidden])'); await sleep(150); await page.tap('#intro'); }
+  await page.waitForFunction(() => window.__tofu.scene === 'run');
+  // 指で左へはらう
+  const vp = page.viewport();
+  await page.touchscreen.touchStart(vp.width / 2, vp.height * 0.6);
+  await page.touchscreen.touchMove(vp.width / 2 - 60, vp.height * 0.6);
+  await page.touchscreen.touchEnd();
+  await page.waitForFunction(() => window.__tofu.run.lane === -1, { timeout: 2000 });
+  // 上へはらうと跳ぶ
+  await page.touchscreen.touchStart(vp.width / 2, vp.height * 0.6);
+  await page.touchscreen.touchMove(vp.width / 2, vp.height * 0.6 - 60);
+  await page.touchscreen.touchEnd();
+  await page.waitForFunction(() => window.__tofu.run.y > 0.1, { timeout: 2000 });
+  assert.equal(await page.$eval('#hud-hint', (e) => e.hidden), false, 'はじめは操作の案内が出る');
+  // そのまま走り続けると、いずれ何かにぶつかって崩れる
+  await page.waitForSelector('#over:not([hidden])', { timeout: 30000 });
+  const sv = await page.evaluate(() => window.__tofu.save);
+  assert.ok(sv.best > 0 && sv.stats.runs === 1 && Object.keys(sv.deaths).length === 1, JSON.stringify(sv));
+  assert.ok(sv.missions.includes('fall1'));
+  assert.match(await page.$eval('#over-death', (e) => e.textContent), /。$/);
+  await page.screenshot({ path: join(OUT, 'e2e-tofu-over.png') });
+  // もう一回 → すぐ走り出す
+  await page.tap('#btn-again');
+  await page.waitForFunction(() => window.__tofu.scene === 'run' && window.__tofu.run.d > 1);
+  await page.waitForFunction(() => !window.__tofu.saving(), { timeout: 8000 });
+  await page.reload({ waitUntil: 'networkidle0' });
+  await page.waitForFunction(() => window.__tofu?.scene === 'title');
+  assert.match(await page.$eval('#title-best', (e) => e.textContent), /自己ベスト \d+m/);
+  await Promise.all([page.waitForNavigation({ waitUntil: 'networkidle0' }), page.tap('#btn-back')]);
+  await page.waitForFunction(() => document.querySelector('#grid [data-play="tofu-run"] small')?.textContent.includes('自己ベスト'));
+  await page.tap('#views [data-view="cards"]');
 });
 
 await browser.close();

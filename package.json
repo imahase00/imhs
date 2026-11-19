@@ -11,7 +11,8 @@
     "serve": "node tools/serve.mjs",
     "sim": "node tools/sim-hidamari.mjs 30",
     "sim:forest": "node tools/sim-forest.mjs 8",
-    "sim:drift": "node tools/sim-drift.mjs 3"
+    "sim:drift": "node tools/sim-drift.mjs 3",
+    "sim:tofu": "node tools/sim-tofu.mjs 30 0.25"
   },
   "devDependencies": {
     "puppeteer-core": "^24.43.1"

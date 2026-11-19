@@ -1,6 +1,6 @@
 {
  "app": "imhs",
- "version": "efa4a397cb7c",
+ "version": "73a4fb412342",
  "files": [
   "games.json",
   "games/drift-1/audio.js",
@@ -249,6 +249,15 @@
   "games/merge-journey/main.js",
   "games/merge-journey/rules.js",
   "games/merge-journey/save-schema.js",
+  "games/tofu-run/audio.js",
+  "games/tofu-run/data.js",
+  "games/tofu-run/game.css",
+  "games/tofu-run/img/cover.webp",
+  "games/tofu-run/index.html",
+  "games/tofu-run/main.js",
+  "games/tofu-run/render.js",
+  "games/tofu-run/save-schema.js",
+  "games/tofu-run/sim.js",
   "icons/apple-touch-icon.png",
   "icons/favicon-32.png",
   "icons/icon-192.png",

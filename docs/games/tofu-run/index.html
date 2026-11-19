@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#efe2c6">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="IMHS">
+<meta name="format-detection" content="telephone=no">
+<title>にげろ！とうふ - IMHS</title>
+<link rel="manifest" href="../../manifest.webmanifest">
+<link rel="icon" href="../../icons/favicon-32.png" type="image/png">
+<link rel="apple-touch-icon" href="../../icons/apple-touch-icon.png">
+<link rel="stylesheet" href="game.css">
+<script type="module" src="main.js"></script>
+</head>
+<body>
+<canvas id="view" aria-label="とうふが走る道"></canvas>
+
+<!-- タイトル -->
+<section class="screen title" id="title" hidden>
+  <header class="bar">
+    <a class="iconbtn" id="btn-back" href="../../index.html" aria-label="ランチャーへ戻る">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12H5m6-7-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </a>
+    <button class="iconbtn" id="btn-settings" type="button" aria-label="設定">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M19.4 13a7.5 7.5 0 0 0 0-2l2.1-1.6-2-3.5-2.5 1a7.6 7.6 0 0 0-1.7-1L15 3.3h-4l-.4 2.6a7.6 7.6 0 0 0-1.7 1l-2.5-1-2 3.5L6.6 11a7.5 7.5 0 0 0 0 2l-2.1 1.6 2 3.5 2.5-1c.5.4 1.1.7 1.7 1l.4 2.6h4l.4-2.6c.6-.3 1.2-.6 1.7-1l2.5 1 2-3.5zM12 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7z"/></svg>
+    </button>
+  </header>
+  <h1 class="logo"><span class="l1">にげろ！</span><span class="l2">とうふ</span></h1>
+  <p class="best" id="title-best"></p>
+  <div class="title-actions">
+    <button class="btn run" id="btn-run" type="button">はしる！</button>
+    <nav class="menu">
+      <button class="chip" id="btn-missions" type="button"><b>お題</b><span id="chip-missions"></span></button>
+      <button class="chip" id="btn-dex" type="button"><b>図鑑</b><span id="chip-dex"></span></button>
+      <button class="chip" id="btn-skins" type="button"><b>とうふ</b><span id="chip-skin"></span></button>
+      <button class="chip" id="btn-records" type="button"><b>記録</b><span>歴代</span></button>
+    </nav>
+  </div>
+</section>
+
+<!-- 走っているとき -->
+<section class="screen hud" id="hud" hidden>
+  <div class="hud-top">
+    <div class="meter"><b id="hud-dist">0</b><small>m</small></div>
+    <div class="negi-count"><i class="negi-icon" aria-hidden="true"></i><b id="hud-negi">0</b></div>
+    <button class="iconbtn" id="btn-pause" type="button" aria-label="一時停止">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M7 5h3v14H7zM14 5h3v14h-3z"/></svg>
+    </button>
+  </div>
+  <div class="best-line" id="hud-best"></div>
+  <div class="banner" id="hud-banner" hidden></div>
+  <div class="hint" id="hud-hint" hidden></div>
+</section>
+
+<!-- 結果 -->
+<section class="screen over" id="over" hidden>
+  <div class="over-card">
+    <p class="over-head">くずれた……</p>
+    <canvas class="over-tofu" id="over-tofu" width="480" height="420"></canvas>
+    <p class="death" id="over-death"></p>
+    <div class="score">
+      <div><small>きょりの記録</small><b id="over-dist"></b></div>
+      <div><small>ねぎ</small><b id="over-negi"></b></div>
+    </div>
+    <p class="badges" id="over-badges"></p>
+    <ul class="done" id="over-done"></ul>
+    <div class="over-actions">
+      <button class="btn ghost" id="btn-totitle" type="button">タイトルへ</button>
+      <button class="btn run" id="btn-again" type="button">もう一回！</button>
+    </div>
+  </div>
+</section>
+
+<!-- 導入（初回だけ） -->
+<div class="intro" id="intro" hidden><p id="intro-text"></p><small>タップで進む</small></div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<div class="savebar" id="save-banner" role="alert" hidden></div>
+<div class="modal" id="modal" hidden><div class="panel" id="modal-panel" role="dialog" aria-modal="true"></div></div>
+<noscript><p style="padding:2rem">JavaScript を有効にしてください。</p></noscript>
+</body>
+</html>
