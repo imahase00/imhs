@@ -784,6 +784,7 @@ await step('ランチャー: 一覧表示（アイコン＋題名）に切り替
 
 await browser.close();
 await new Promise((r) => server.close(r));
+rmSync(SITE, { recursive: true, force: true }); // テスト用に複製したサイトは終わったら消す
 
 console.log('\n外部通信:', external.length ? external : 'なし');
 const realProblems = problems.filter((p) => !/ERR_CONNECTION_REFUSED|net::ERR_FAILED|Failed to load resource/.test(p));

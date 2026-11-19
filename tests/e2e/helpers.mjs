@@ -1,5 +1,5 @@
 // E2E 共通: 静的サーバー（Pages と同じ /imhs/ 配下）と Chrome/Edge の起動
-import { existsSync, mkdirSync } from 'node:fs';
+import { existsSync, mkdirSync, readdirSync, statSync, rmSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { join } from 'node:path';
 import puppeteer from 'puppeteer-core';
@@ -8,6 +8,12 @@ import { startServer } from '../../tools/serve.mjs';
 export const ROOT = fileURLToPath(new URL('../..', import.meta.url));
 export const OUT = join(ROOT, 'test-output');
 mkdirSync(OUT, { recursive: true });
+// 古い画面写真の自動片付け: 1時間より前の出力は消す（続けて流した別のスクリプトの出力は残す）
+const KEEP_MS = 60 * 60 * 1000;
+for (const name of readdirSync(OUT)) {
+  const p = join(OUT, name);
+  try { if (Date.now() - statSync(p).mtimeMs > KEEP_MS) rmSync(p, { recursive: true, force: true }); } catch { /* 使用中などは次回 */ }
+}
 
 const BROWSERS = [
   process.env.CHROME_PATH,
