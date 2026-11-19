@@ -756,6 +756,32 @@ await step('漂流発明記: 工場の時代のバックアップを復元 → �
   assert.equal(await page.$eval('[data-play="drift-1"]', (a) => a.textContent.trim()), 'つづきから');
 });
 
+await step('ランチャー: 一覧表示（アイコン＋題名）に切り替え、覚えておき、タップで起動', async () => {
+  await page.tap('#views [data-view="grid"]');
+  await page.waitForSelector('#grid .app');
+  const g = await page.evaluate(() => ({
+    titles: [...document.querySelectorAll('#grid .app b')].map((b) => b.textContent),
+    cardsShown: document.querySelector('#games').offsetParent !== null,
+    pagerShown: document.querySelector('#pager').offsetParent !== null,
+    sw: document.documentElement.scrollWidth, vw: innerWidth,
+    tops: [...document.querySelectorAll('#grid .app')].map((a) => Math.round(a.getBoundingClientRect().top)),
+  }));
+  assert.equal(g.titles.length, 4);
+  assert.equal(g.cardsShown, false);
+  assert.equal(g.pagerShown, false);
+  assert.ok(g.sw <= g.vw, '横にはみ出さない');
+  assert.equal(new Set(g.tops).size, 1, 'スマホ幅で4つが1行に並ぶ');
+  await page.waitForFunction(() => [...document.querySelectorAll('#grid img')].every((i) => i.complete && i.naturalWidth > 0), { timeout: 5000 });
+  await page.screenshot({ path: join(OUT, 'e2e-launcher-grid.png') });
+  await page.reload({ waitUntil: 'networkidle0' });
+  assert.equal(await page.$eval('#views [data-view="grid"]', (b) => b.getAttribute('aria-checked')), 'true', '再読み込み後も一覧のまま');
+  await Promise.all([page.waitForNavigation({ waitUntil: 'networkidle0' }), page.tap('#grid [data-play="forest-fort"]')]);
+  assert.match(page.url(), /forest-fort/);
+  await page.goBack({ waitUntil: 'networkidle0' });
+  await page.tap('#views [data-view="cards"]');
+  await page.waitForFunction(() => document.querySelector('#pager button:nth-child(3)')?.getAttribute('aria-current') === 'true', { timeout: 3000 });
+});
+
 await browser.close();
 await new Promise((r) => server.close(r));
 

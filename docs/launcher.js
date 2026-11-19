@@ -55,6 +55,14 @@ async function renderGames() {
   }
   const keep = currentGameId();
   box.replaceChildren(...cards);
+  // 一覧表示: アプリのアイコンのように並べる（タップでそのまま遊ぶ）
+  $('grid').replaceChildren(...games.map((g, i) => {
+    const label = recs[i]?.summary?.label;
+    return h('a', { class: 'app', href: g.entry, 'data-play': g.id, 'data-game': g.id },
+      h('span', { class: 'icon' }, h('img', { src: g.cover, alt: '', decoding: 'async' })),
+      h('b', { text: g.title }),
+      h('small', { text: label || (recs[i] ? 'つづきから' : 'はじめから') }));
+  }));
   renderPager(keep ?? lastGameId());
   // セーブを読めなかったときは、少し待って読み直す（「つづきから」の表示を正しくするため）
   clearTimeout(retryTimer);
@@ -65,7 +73,7 @@ async function renderGames() {
 const LAST_KEY = 'imhs:launcher:lastGame';
 function lastGameId() { try { return localStorage.getItem(LAST_KEY); } catch { return null; } }
 function rememberGame(id) { try { if (id) localStorage.setItem(LAST_KEY, id); } catch { /* 保存できない環境 */ } }
-const isSlider = () => getComputedStyle($('games')).overflowX === 'auto';
+const isSlider = () => view() !== 'grid' && getComputedStyle($('games')).overflowX === 'auto';
 function currentIndex() {
   const box = $('games');
   const cards = [...box.children];
@@ -114,10 +122,30 @@ $('games').addEventListener('scroll', () => {
   pagerFrame = requestAnimationFrame(updatePager);
 }, { passive: true });
 window.addEventListener('resize', () => { cancelAnimationFrame(pagerFrame); pagerFrame = requestAnimationFrame(updatePager); });
-$('games').addEventListener('click', (e) => {
-  const a = e.target.closest('[data-play]');
-  if (a) rememberGame(a.dataset.play);
-});
+for (const id of ['games', 'grid']) {
+  $(id).addEventListener('click', (e) => {
+    const a = e.target.closest('[data-play]');
+    if (a) rememberGame(a.dataset.play);
+  });
+}
+
+// ---- 表示の切り替え（大きく表示 ⇔ 一覧）。端末内に覚えておく ----
+const VIEW_KEY = 'imhs:launcher:view';
+const view = () => (document.documentElement.dataset.view === 'grid' ? 'grid' : 'cards');
+function setView(v) {
+  if (v === view()) return;
+  const keep = currentGameId();
+  if (v === 'grid') document.documentElement.dataset.view = 'grid';
+  else delete document.documentElement.dataset.view;
+  try { localStorage.setItem(VIEW_KEY, v); } catch { /* 保存できない環境 */ }
+  syncViewButtons();
+  if (v === 'cards') renderPager(keep ?? lastGameId());
+}
+function syncViewButtons() {
+  for (const b of $('views').children) b.setAttribute('aria-checked', String(b.dataset.view === view()));
+}
+for (const b of $('views').children) b.addEventListener('click', () => setView(b.dataset.view));
+syncViewButtons();
 
 // ---- オフライン表示 ----
 function setOffline(s) {
