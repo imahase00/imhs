@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#1e140c">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="IMHS">
+<meta name="format-detection" content="telephone=no">
+<title>パズトレ - IMHS</title>
+<link rel="manifest" href="../../manifest.webmanifest">
+<link rel="icon" href="../../icons/favicon-32.png" type="image/png">
+<link rel="apple-touch-icon" href="../../icons/apple-touch-icon.png">
+<link rel="stylesheet" href="game.css">
+<script type="module" src="main.js"></script>
+</head>
+<body>
+
+<!-- タイトル -->
+<section class="screen title" id="title" hidden>
+  <img class="bgimg" src="img/cover.webp" alt="">
+  <header class="bar">
+    <a class="iconbtn" id="btn-back" href="../../index.html" aria-label="ランチャーへ戻る">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12H5m6-7-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </a>
+    <button class="iconbtn" id="btn-settings" type="button" aria-label="設定">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M19.4 13a7.5 7.5 0 0 0 0-2l2.1-1.6-2-3.5-2.5 1a7.6 7.6 0 0 0-1.7-1L15 3.3h-4l-.4 2.6a7.6 7.6 0 0 0-1.7 1l-2.5-1-2 3.5L6.6 11a7.5 7.5 0 0 0 0 2l-2.1 1.6 2 3.5 2.5-1c.5.4 1.1.7 1.7 1l.4 2.6h4l.4-2.6c.6-.3 1.2-.6 1.7-1l2.5 1 2-3.5zM12 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7z"/></svg>
+    </button>
+  </header>
+  <h1 class="logo"><span class="l1">パズトレ</span><span class="l2">パズル＆トレジャー</span></h1>
+  <div class="title-actions">
+    <button class="btn gold big" id="btn-start" type="button">冒険へ</button>
+    <nav class="menu">
+      <button class="chip" id="btn-dex" type="button"><b>図鑑</b><span id="chip-dex"></span></button>
+      <button class="chip" id="btn-tools" type="button"><b>道具</b><span id="chip-tools"></span></button>
+      <button class="chip" id="btn-frames" type="button"><b>枠</b><span id="chip-frames"></span></button>
+    </nav>
+  </div>
+</section>
+
+<!-- ダンジョンをえらぶ -->
+<section class="screen map" id="map" hidden>
+  <header class="bar">
+    <button class="iconbtn" id="btn-map-back" type="button" aria-label="タイトルへ">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12H5m6-7-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
+    <h2>ダンジョン</h2>
+    <span class="coin-pill"><i class="coin" aria-hidden="true"></i><b id="map-coins">0</b></span>
+  </header>
+  <div class="dungeons" id="dungeons"></div>
+</section>
+
+<!-- パズル -->
+<section class="screen battle" id="battle" hidden>
+  <div class="stage" id="stage">
+    <img class="bgimg" id="stage-bg" alt="">
+    <header class="bar">
+      <div class="floor" id="floor"></div>
+      <span class="coin-pill"><i class="coin" aria-hidden="true"></i><b id="run-coins">0</b></span>
+      <button class="iconbtn" id="btn-pause" type="button" aria-label="一時停止">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M7 5h3v14H7zM14 5h3v14h-3z"/></svg>
+      </button>
+    </header>
+    <div class="traps" id="traps"></div>
+    <div class="msg" id="msg" hidden></div>
+  </div>
+  <div class="dock">
+    <div class="hpbar" aria-label="探検隊の体力"><span class="hp-fill" id="hp-fill"></span><b id="hp-text"></b></div>
+    <div class="tools" id="tools"></div>
+    <div class="timer" id="timer"><span id="timer-fill"></span></div>
+    <div class="board-wrap" id="board-wrap">
+      <canvas id="board" aria-label="パズルの盤面"></canvas>
+      <div class="combo" id="combo" hidden></div>
+    </div>
+  </div>
+</section>
+
+<div class="flash" id="flash"></div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<div class="savebar" id="save-banner" role="alert" hidden></div>
+<div class="modal" id="modal" hidden><div class="panel" id="modal-panel" role="dialog" aria-modal="true"></div></div>
+<noscript><p style="padding:2rem">JavaScript を有効にしてください。</p></noscript>
+</body>
+</html>

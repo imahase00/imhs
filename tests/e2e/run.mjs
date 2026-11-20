@@ -4,6 +4,7 @@ import { cpSync, rmSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import assert from 'node:assert/strict';
 import { launch, OUT, ROOT, IPHONE16, PC, sleep } from './helpers.mjs';
+import { playTurn } from './puztre-helpers.mjs';
 import { startServer } from '../../tools/serve.mjs';
 import * as R from '../../docs/games/merge-journey/rules.js';
 import * as S from '../../docs/games/merge-journey/save-schema.js';
@@ -430,7 +431,7 @@ async function hgSleep(p) {
 await step('ひだまり菜園: ランチャーに2本目として並び、通常の入口から起動（iPhone 16 幅）', async () => {
   await page.goto(URL0, { waitUntil: 'networkidle0' });
   const titles = await page.$$eval('.cover-title b', (b) => b.map((x) => x.textContent));
-  assert.deepEqual(titles, ['マージの旅', 'ひだまり菜園', '森のとりで', '漂流発明記 ― 霧の島 ―', 'にげろ！とうふ']);
+  assert.deepEqual(titles, ['マージの旅', 'ひだまり菜園', '森のとりで', '漂流発明記 ― 霧の島 ―', 'にげろ！とうふ', 'パズトレ']);
   // スマホ幅は横スライド: 縦スクロールなしで1枚ずつ、点で切り替え
   const lay = await page.evaluate(() => ({ sw: document.documentElement.scrollWidth, vw: innerWidth, overflow: getComputedStyle(document.querySelector('#games')).overflowX }));
   assert.equal(lay.overflow, 'auto');
@@ -632,7 +633,7 @@ await step('森のとりで: ウェーブ開始 → 途中で再読み込みし�
   await Promise.all([page.waitForNavigation({ waitUntil: 'networkidle0' }), page.tap('#btn-back')]);
   assert.equal(await page.$eval('[data-play="forest-fort"]', (a) => a.textContent.trim()), 'つづきから');
   // ゲーム一覧（3本）が出ている
-  assert.equal(await page.$$eval('#games .card', (c) => c.length), 5);
+  assert.equal(await page.$$eval('#games .card', (c) => c.length), 6);
   // 戻った直後に「確認中…」のまま止まらない
   await page.waitForFunction(() => !/確認中/.test(document.querySelector('#offline-text').textContent), { timeout: 3000 });
 });
@@ -696,7 +697,7 @@ await step('漂流発明記: ランチャーの4本目から新しく始める �
   assert.ok((st.save.bag.wood ?? 0) + (st.save.pool.wood ?? 0) >= 1);
 });
 
-await step('漂流発明記: 工場の時代のバックアップを復元 → 倉庫をタップ → 「建てる」から倉庫を置く → ランチャーへ戻ると5本並ぶ', async () => {
+await step('漂流発明記: 工場の時代のバックアップを復元 → 倉庫をタップ → 「建てる」から倉庫を置く → ランチャーへ戻ると6本並ぶ', async () => {
   const d = JSON.parse(readFileSync(join(ROOT, 'tests/fixtures/drift-parts.json'), 'utf8'));
   d.seen = [...new Set(['opening', ...d.seen, ...d.pending])];
   d.pending = [];
@@ -754,7 +755,7 @@ await step('漂流発明記: 工場の時代のバックアップを復元 → �
   await page.screenshot({ path: join(OUT, 'e2e-drift-build.png') });
   await page.waitForFunction(() => !window.__drift.saving(), { timeout: 8000 });
   await Promise.all([page.waitForNavigation({ waitUntil: 'networkidle0' }), page.tap('#btn-back')]);
-  assert.equal(await page.$$eval('#games .card', (c) => c.length), 5);
+  assert.equal(await page.$$eval('#games .card', (c) => c.length), 6);
   assert.equal(await page.$eval('[data-play="drift-1"]', (a) => a.textContent.trim()), 'つづきから');
 });
 
@@ -768,12 +769,12 @@ await step('ランチャー: 一覧表示（アイコン＋題名）に切り替
     sw: document.documentElement.scrollWidth, vw: innerWidth,
     tops: [...document.querySelectorAll('#grid .app')].map((a) => Math.round(a.getBoundingClientRect().top)),
   }));
-  assert.equal(g.titles.length, 5);
+  assert.equal(g.titles.length, 6);
   assert.equal(g.cardsShown, false);
   assert.equal(g.pagerShown, false);
   assert.ok(g.sw <= g.vw, '横にはみ出さない');
   assert.equal(new Set(g.tops.slice(0, 4)).size, 1, 'スマホ幅で4つが1行に並ぶ');
-  assert.ok(g.tops[4] > g.tops[0], '5本目は次の行');
+  assert.ok(g.tops[4] > g.tops[0] && g.tops[5] === g.tops[4], '5・6本目は次の行');
   await page.waitForFunction(() => [...document.querySelectorAll('#grid img')].every((i) => i.complete && i.naturalWidth > 0), { timeout: 5000 });
   await page.screenshot({ path: join(OUT, 'e2e-launcher-grid.png') });
   await page.reload({ waitUntil: 'networkidle0' });
@@ -821,6 +822,61 @@ await step('にげろ！とうふ: 一覧の5本目から起動 → 導入 → �
   assert.match(await page.$eval('#title-best', (e) => e.textContent), /自己ベスト \d+m/);
   await Promise.all([page.waitForNavigation({ waitUntil: 'networkidle0' }), page.tap('#btn-back')]);
   await page.waitForFunction(() => document.querySelector('#grid [data-play="tofu-run"] small')?.textContent.includes('自己ベスト'));
+  await page.tap('#views [data-view="cards"]');
+});
+
+await step('パズトレ: 一覧の6本目から起動 → 導入 → 密林の遺跡へ出発 → 球をそろえて仕掛けを削る → 撤退 → 枠の店', async () => {
+  await page.goto(URL0, { waitUntil: 'networkidle0' });
+  await page.tap('#views [data-view="grid"]');
+  await Promise.all([page.waitForNavigation({ waitUntil: 'networkidle0' }), page.tap('#grid [data-play="puztre"]')]);
+  await page.waitForFunction(() => window.__puztre?.scene === 'title');
+  await page.tap('#btn-start');
+  await page.waitForSelector('#modal:not([hidden])');
+  await page.tap('#modal .btn.gold');
+  await page.waitForFunction(() => window.__puztre.scene === 'map');
+  assert.equal(await page.$$eval('.dg.locked', (e) => e.length), 5, '最初は密林の遺跡だけ');
+  await page.tap('.dg[data-d="0"]');
+  await page.waitForSelector('#modal:not([hidden]) .toolrow');
+  await page.tap('#modal .actions .btn.gold');
+  await page.waitForFunction(() => window.__puztre.scene === 'battle' && window.__puztre.phase === 'idle');
+  const hp0 = await page.evaluate(() => window.__puztre.run.traps[0].hp);
+  const combos = await playTurn(page);
+  assert.ok(combos >= 1, 'そろう動かし方が見つかる');
+  await page.waitForFunction(() => window.__puztre.phase === 'idle' || !document.querySelector('#modal').hidden, { timeout: 15000 });
+  const r = await page.evaluate(() => window.__puztre.run);
+  assert.equal(r.turn, 1);
+  assert.ok(r.floor > 0 || r.traps[0].hp < hp0, '仕掛けが削れた');
+  await page.screenshot({ path: join(OUT, 'e2e-puztre.png') });
+  await page.waitForFunction(() => !window.__puztre.saving(), { timeout: 8000 });
+  // 再読み込みしても、フロアの始めから続きを遊べる
+  await page.reload({ waitUntil: 'networkidle0' });
+  await page.waitForFunction(() => window.__puztre?.scene === 'title');
+  assert.ok((await page.evaluate(() => window.__puztre.save.run)) !== null);
+  await page.tap('#btn-start');
+  await page.waitForFunction(() => window.__puztre.scene === 'map');
+  assert.match(await page.$eval('.dg[data-d="0"] .tag', (e) => e.textContent), /つづきから/);
+  await page.tap('.dg[data-d="0"]');
+  await page.waitForSelector('#modal:not([hidden])');
+  await page.tap('#modal .actions .btn.gold');
+  await page.waitForFunction(() => window.__puztre.scene === 'battle' && window.__puztre.phase === 'idle');
+  // 撤退
+  await page.tap('#btn-pause');
+  await page.waitForSelector('#modal:not([hidden])');
+  await page.tap('#modal .actions .btn.small');
+  await page.waitForSelector('#modal:not([hidden]) .btn.gold');
+  await page.tap('#modal .actions .btn.gold');
+  await page.waitForFunction(() => window.__puztre.save.stats.retreats === 1 && window.__puztre.save.run === null, { timeout: 8000 });
+  await page.waitForSelector('#modal:not([hidden]) .btn.gold');
+  await page.tap('#modal .btn.gold');
+  await page.waitForFunction(() => window.__puztre.scene === 'map');
+  await page.tap('#btn-map-back');
+  await page.tap('#btn-frames');
+  await page.waitForSelector('#modal:not([hidden]) .frames');
+  assert.equal(await page.$$eval('#modal .frames > div', (e) => e.length), 8);
+  await page.tap('#modal .iconbtn');
+  await page.waitForFunction(() => !window.__puztre.saving(), { timeout: 8000 });
+  await Promise.all([page.waitForNavigation({ waitUntil: 'networkidle0' }), page.tap('#btn-back')]);
+  await page.waitForFunction(() => document.querySelector('#grid [data-play="puztre"] small')?.textContent.length > 0);
   await page.tap('#views [data-view="cards"]');
 });
 

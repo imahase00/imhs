@@ -2,7 +2,7 @@
 
 原本は読み取りのみで、移動・改名・上書きはしない。
 使い方:  python tools/prepare_assets.py            （全ゲーム）
-        python tools/prepare_assets.py forest-fort / drift-1（指定したゲームの画像だけ作り直す。素材表は全ゲーム分を更新）
+        python tools/prepare_assets.py forest-fort / drift-1 / puztre（指定したゲームの画像だけ作り直す。素材表は全ゲーム分を更新）
 必要:    Pillow (pip install pillow)
 """
 from __future__ import annotations
@@ -125,6 +125,8 @@ def main() -> int:
     rows += assets_forest.prepare(SRC / "森のとりで", DOCS, wants(assets_forest.GAME))
     import assets_drift
     rows += assets_drift.prepare(SRC / "漂流発明記", DOCS, wants(assets_drift.GAME))
+    import assets_puztre
+    rows += assets_puztre.prepare(SRC / "パズトレ", DOCS, wants(assets_puztre.GAME))
     if wants(GAME_ID):
         make_icons()
     write_table(rows)

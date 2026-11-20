@@ -96,3 +96,18 @@
 | 横顔の蒸気飛行船.png | 1536×1024 | 5a706f04e9 | 演出: 飛び立つ飛行船（透過） | drift-1 / `s-ship` | `games/drift-1/img/scene/ship.webp` |
 | 朝空に立ちはだかる嵐雲.png | 1536×1024 | 34022515da | 演出: 行く手の巨大な嵐 | drift-1 / `s-nextstorm` | `games/drift-1/img/scene/nextstorm.webp` |
 | 夕映えの山頂、発明家と飛行船.png | 1024×1536 | 8e82d720f6 | 表紙（ランチャーのゲームカード） | drift-1 / `cover` | `games/drift-1/img/cover.webp` |
+| 冒険の輝く宝物コレクション.png | 1254×1254 | bb18a0d7cf | 一覧表: お宝（密林の遺跡・水没神殿） | puztre / `j1・j2・j3・j4・j5・j6・j7・j8・s1・s2・s3・s4・s5・s6・s7・s8` | `games/puztre/img/treasure/*.webp` |
+| 炎と氷の宝物コレクション.png | 1254×1254 | 5eb4e3fcbb | 一覧表: お宝（炎の鉱山・氷の洞窟） | puztre / `f1・f2・f3・f4・f5・f6・f7・f8・i1・i2・i3・i4・i5・i6・i7・i8` | `games/puztre/img/treasure/*.webp` |
+| 16種のきらめく宝物コレクション.png | 1254×1254 | cc4bb1d224 | 一覧表: お宝（天空の塔・黄金郷） | puztre / `k1・k2・k3・k4・k5・k6・k7・k8・g1・g2・g3・g4・g5・g6・g7・g8` | `games/puztre/img/treasure/*.webp` |
+| ジャングルと海底神殿の八つの障害.png | 1536×1024 | dae8c61913 | 一覧表: 仕掛け（密林の遺跡・水没神殿） | puztre / `vine-door・snake・bridge・boss-j・sluice・whirl・grate・boss-s` | `games/puztre/img/trap/*.webp` |
+| 炎と氷の八つの障害物.png | 1536×1024 | 372ccd497d | 一覧表: 仕掛け（炎の鉱山・氷の洞窟） | puztre / `lava・fire-door・boulder・boss-f・ice-door・icicle・blizzard・boss-i` | `games/puztre/img/trap/*.webp` |
+| 空の塔と黄金迷宮の障害物.png | 1536×1024 | 23e7e6dd78 | 一覧表: 仕掛け（天空の塔・黄金郷） | puztre / `wind・mirror-door・stairs・boss-k・scale・masks・pit・boss-g` | `games/puztre/img/trap/*.webp` |
+| 冒険者の装備16種アイコンシート.png | 1254×1254 | 22c9ec2400 | 一覧表: 探検の道具（16種） | puztre / `torch・flask・pick・lantern・mirror・hourglass・rope・compass・map・hammer・scope・herbs・keys・lens・boots・gloves` | `games/puztre/img/tool/*.webp` |
+| 陽光差す密林神殿の回廊.png | 1024×1536 | 2ed267b31f | 背景: 密林の遺跡 | puztre / `bg-j` | `games/puztre/img/bg/j.webp` |
+| 蒼き水流の古代大理石神殿.png | 1024×1536 | 130ce81225 | 背景: 水没神殿 | puztre / `bg-s` | `games/puztre/img/bg/s.webp` |
+| 溶岩輝く鉱山の坑道.png | 1024×1536 | 03a214a80a | 背景: 炎の鉱山 | puztre / `bg-f` | `games/puztre/img/bg/f.webp` |
+| 青白く輝く氷晶洞窟.png | 1024×1536 | 99d2b03152 | 背景: 氷の洞窟 | puztre / `bg-i` | `games/puztre/img/bg/i.webp` |
+| 雲上の白石回廊.png | 1024×1536 | 4c38c5bf1b | 背景: 天空の塔 | puztre / `bg-k` | `games/puztre/img/bg/k.webp` |
+| エルドラドの黄金大回廊.png | 1024×1536 | 55f96d48bc | 背景: 黄金郷 | puztre / `bg-g` | `games/puztre/img/bg/g.webp` |
+| 開かれた黄金の宝物庫.png | 1024×1536 | d1a2e3211c | エンディング: 開いた宝物庫 | puztre / `ending` | `games/puztre/img/ending.webp` |
+| 黄金の宝箱と六色の宝珠.png | 1024×1536 | 8eadeac629 | 表紙（ランチャーのゲームカード・タイトル画面） | puztre / `cover` | `games/puztre/img/cover.webp` |
