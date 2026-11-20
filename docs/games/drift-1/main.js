@@ -277,7 +277,7 @@ const costText = (cost) => Object.entries(cost).map(([k, n]) => `${itemName(k)}�
 
 // ---- 上の表示 ----
 let hudKey = '';
-let cardKey = '';
+let cardKey = null;   // null は「必ず描き直す」（'' は「何も出さない」）
 function renderHud() {
   const q = QUESTS[save.quest];
   const need = q?.kind === 'have' ? q.need : null;
@@ -301,7 +301,7 @@ function renderHud() {
 // ---- 下のカード ----
 function select(id) {
   ui.sel = id;
-  cardKey = '';
+  cardKey = null;
 }
 function renderCard() {
   const card = $('card');
@@ -538,14 +538,14 @@ function startBuild(type) {
   closeSheet();
   mode = { kind: 'build', type };
   ui.ghost = null;
-  cardKey = '';
+  cardKey = null;
   // まずは主人公の少し前に置いてみる
   setGhost(world.hero.x + world.hero.face * 170, world.hero.y - 40);
 }
 function setGhost(x, y) {
   const c = S.checkPlace(world, mode.type, x, y);
   ui.ghost = { type: mode.type, x: c.ok ? c.x : x, y: c.ok ? c.y : y, ok: c.ok, why: c.why };
-  cardKey = '';
+  cardKey = null;
 }
 function confirmPlace() {
   if (!ui.ghost?.ok) return;
@@ -556,13 +556,13 @@ function confirmPlace() {
 }
 function startLink(from) {
   mode = { kind: 'link', from };
-  cardKey = '';
+  cardKey = null;
   toast('つなぐ先の機械か倉庫をタップしてください');
 }
 function endMode() {
   mode = null;
   ui.ghost = null;
-  cardKey = '';
+  cardKey = null;
 }
 
 // ---- 持ち物・地図 ----

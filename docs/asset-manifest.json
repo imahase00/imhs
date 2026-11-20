@@ -1,6 +1,6 @@
 {
  "app": "imhs",
- "version": "73a4fb412342",
+ "version": "59d616a055fe",
  "files": [
   "games.json",
   "games/drift-1/audio.js",

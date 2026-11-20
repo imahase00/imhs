@@ -734,6 +734,8 @@ await step('漂流発明記: 工場の時代のバックアップを復元 → �
   await page.waitForSelector('#card:not([hidden])');
   assert.match(await page.$eval('#card', (e) => e.textContent), /倉庫/);
   await page.tap('#card .x');
+  // ✕で倉庫のカードが閉じる（近くに何もなければカードごと消える）
+  await page.waitForFunction(() => document.querySelector('#card').hidden || !/倉庫/.test(document.querySelector('#card').textContent), { timeout: 2000 });
   await page.tap('#btn-build');
   await page.waitForSelector('#sheet:not([hidden])');
   await page.tap('#sheet .mitem');   // 一覧の最初は倉庫
